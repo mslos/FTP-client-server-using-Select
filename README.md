@@ -1,10 +1,29 @@
+#To run
 Running basic server and client from command line:
 
+'''
 ./obj/FTPserver 127.0.0.1 5000
 ./obj/FTPclient 127.0.0.1 5000 MessageToPassToServer
+'''
+Username and passowrds:
+'''
+Nabil        1234
+Brooke       qwer
+Martin       iluvnet
+'''
 
-If need to debug:
-
+To Debug:
+'''
 strace [COMMAND TO RUN THE CLIENT/SERVER - SAME AS ABOVE]
+'''
 
+
+#Checkpoint #1
+Server code that handles multiple clients and authenticates each username and password. 
+Commands supported:
+USER
+Once the server starts, 1 or more clients can connect and are then prompted to authenticate themselves. The client is prompted for a username, and if the username is in the authenticated list, the server respons "Username OK, password required".
+
+PASS
+If the user entered a valid user, and a valid password then the user is authenticated. 
 
