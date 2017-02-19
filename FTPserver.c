@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
 #include <string.h>
+#include <errno.h>
 
 #define BUFFER_SIZE 500
 #define MAX_NUM_OF_CLIENTS 5
@@ -32,26 +33,35 @@ int main (int argc, char ** argv) {
 	open_socket(&server_addr, &port, ip_addr, &sock);
 	//bind socket to port and address
 	if (bind(sock, &server_addr, sizeof(server_addr)) < 0) {
-      printf(stderr,"Could not bind socket");
+      printf("Could not bind socket");
    	}
 	//listen for clients, max number specified by MAX_NUM_OF_CLIENTS, block until first connection
 	listen(sock,MAX_NUM_OF_CLIENTS);
 
 
 	while(1) {
+		printf("While loop entered");
 		client_fd = accept(sock,(const struct sockaddr *) &client_addr,&len);
 		//will block if there are 0 clients
 
-		int size = read(client_fd, buffer, sizeof(buffer));
-		printf("%s",buffer);
+		// int size = read(client_fd, buffer, BUFFER_SIZE);
+		printf("Server read from client: %s",buffer);
 	}
 }
 
-int open_socket(struct sockaddr_in * myaddr, int *port, char * addr, int * sock) {
+int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock) {
 	*sock = socket(AF_INET, SOCK_STREAM,0);
+
+	if (*sock < 0) {
+      printf(stderr,"Error opening socket");
+   }
+
 	myaddr->sin_family = AF_INET;
-	myaddr->sin_port = htons(port);
+	myaddr->sin_port = htons(*port);
 	
-	if( inet_aton(addr,&(myaddr->sin_addr.s_addr))  == 0 )
+	if( inet_aton(addr, &(myaddr->sin_addr))==0 ) {
 		fprintf(stderr, "Error, cannot translate IP into binary");
+	}
+
+	return 0;
 }
