@@ -231,8 +231,8 @@ void set_up_authorized_list(user * usr) {
 	strcpy(usr[0].pass, "1234");
 	strcpy(usr[1].name, "Brooke");
 	strcpy(usr[1].pass, "qwer");
-	strcpy(usr[1].name, "Martin");
-	strcpy(usr[1].pass, "iluvnet");
+	strcpy(usr[2].name, "Martin");
+	strcpy(usr[2].pass, "iluvnet");
 	printf("Init auth usesr, test user 1 is %s\n", (usr[0].name) );
 
 	// usr[0].name = "Nabil";
