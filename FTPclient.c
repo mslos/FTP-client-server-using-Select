@@ -38,10 +38,21 @@ int main (int argc, char ** argv) {
 		return 1;
 	}
 
+	// char *command_line_input;
+	// fgets(command_line_input, 100, stdin);
+	// printf("Commandline: %s\n",command_line_input );
+
+
+
 	printf("Buffer writes %s\n", buffer);
 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
 		perror("Writing failed");
 
+	memset(buffer,0,sizeof(buffer));
+	
+	if ( read(sock_fd, buffer, 40) < 0 )
+		perror("Could not read from socket.");
+	
 	close(sock_fd);
 }
 
