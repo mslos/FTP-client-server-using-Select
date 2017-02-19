@@ -91,7 +91,7 @@ int main (int argc, char ** argv) {
 	// fgets(buffer,BUFFER_SIZE,input_stream);
 	// fflush(input_stream);
 	// fclose(input_stream);
-	// close(sock_fd);
+	close(sock_fd);
 }
 
 int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock) {

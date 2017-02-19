@@ -17,7 +17,7 @@
 #define MAX_NUM_OF_CLIENTS 5
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
-#define NUM_OF_USERS 5
+#define NUM_OF_USERS 1
 
 typedef struct {
 	int usrFD;
@@ -42,7 +42,7 @@ int main (int argc, char ** argv) {
 	len = sizeof(client_addr); //necessary since accept requires lvalue
 
 	//define array of users and initiate
-	user authorizedUsers[4];
+	user authorizedUsers[NUM_OF_USERS];
 	set_up_authorized_list(authorizedUsers);
 
 	//slect related variables
@@ -114,30 +114,39 @@ int main (int argc, char ** argv) {
 						char params[100]; 
 
 						printf("Client fd %d, says: %s\n",fd,buffer);
-						char msg1[] = "Username OK, password required\n";
-						write(fd, msg1, strlen(msg1) +1);
-						// sscanf(buffer,"%s %s", command , params);
-						// printf("command is %s, params are %s", command, params);
-						// if (strcmp(command, "USER") == 0) {
-						// 	for (int j = 0; j<NUM_OF_USERS; j++) {
-						// 		if(strcmp(*authorizedUsers[j].name, params) == 0) {
-						// 			authorizedUsers[j].usrFD = fd;
-						// 			char msg1[] = "Username OK, password required";
-						// 			write(fd, msg1, strlen(msg1) +1);
-						// 		}
-						// 	}
-						// } else if (strcmp(command, "PASS") == 0) {
-						// 	for (int j = 0; j<NUM_OF_USERS; j++) {
-						// 		if(authorizedUsers[j].usrFD == fd) {
-						// 			if(authorizedUsers[j].pass == params) {
-						// 			char msg2[] = "Authentication complete";
-						// 			write(fd, msg2, strlen(msg2) +1);
-						// 			}
-						// 		}
-						// 	}
-						// } else {
-						//   	printf("An invalid FTP command.\n");
-						// }
+						// char msg1[] = "Username OK, password required\n";
+						// write(fd, msg1, strlen(msg1) +1);
+						sscanf(buffer,"%s %s", command , params);
+						printf("command is %s, params are %s\n", command, params);
+						if (strcmp(command, "USER") == 0) {
+							printf("USER command activated.");
+							for (int j = 0; j<NUM_OF_USERS; j++) {
+								printf("Names check: %d", (authorizedUsers[j].name));
+								if(strcmp(authorizedUsers[j].name, params) == 0) {
+									printf("User found in database.");
+									authorizedUsers[j].usrFD = fd;
+									char msg1[] = "Username OK, password required\n";
+									write(fd, msg1, strlen(msg1) +1);
+									break;
+								}
+							}
+							char msg3[] = "Username does not exist\n";
+							write(fd, msg3, strlen(msg3) +1);
+						}
+					    else if (strcmp(command, "PASS") == 0) {
+							for (int j = 0; j<NUM_OF_USERS; j++) {
+								if(authorizedUsers[j].usrFD == fd) {
+									if(strcmp(authorizedUsers[j].pass, params) == 0) {
+										char msg2[] = "Authentication complete";
+										write(fd, msg2, strlen(msg2) +1);
+								}
+								}
+								
+							}
+						}
+						else {
+						  	printf("An invalid FTP command.\n");
+						}
 
 					}
 					
@@ -193,19 +202,26 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 
 void set_up_authorized_list(user * usr) {
 	for (int i = 0; i < NUM_OF_USERS; i++) {
-		usr[i].name = malloc(MAX_NAME_SIZE);
-		usr[i].pass = malloc(MAX_PASS_SIZE);
+		usr[i].name = (char *) malloc(MAX_NAME_SIZE);
+		usr[i].pass = (char *) malloc(MAX_PASS_SIZE);
 		usr[i].auth = 0;
 		usr[i].usrFD = -1;
 	}
-	*usr[0].name = "Nabil";
-	*usr[0].pass = "1234";
-	*usr[1].name = "Martin";
-	*usr[1].pass = "nyuad";
-	*usr[2].name = "Yasir";
-	*usr[2].pass = "1234";
-	*usr[3].name = "Brooke";
-	*usr[3].pass = "nyuad";
-	*usr[4].name = "John";
-	*usr[4].pass = "1234";
+	strcpy(usr[0].name, "Nabil");
+	strcpy(usr[0].pass, "1234");
+
+	printf("Init auth usesr, test user 1 is %s\n", (usr[0].name) );
+
+	// usr[0].name = "Nabil";
+	// usr[0].pass = "1234";
+	// usr[1].name = "Martin";
+	// usr[1].pass = "nyuad";
+	// usr[2].name = "Yasir";
+	// usr[2].pass = "1234";
+	// usr[3].name = "Brooke";
+	// usr[3].pass = "nyuad";
+	// usr[4].name = "John";
+	// usr[4].pass = "1234";
+
+
 }
