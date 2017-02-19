@@ -17,7 +17,7 @@
 #define MAX_NUM_OF_CLIENTS 5
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
-#define NUM_OF_USERS 2
+#define NUM_OF_USERS 3
 
 typedef struct {
 	int usrFD;
@@ -231,7 +231,8 @@ void set_up_authorized_list(user * usr) {
 	strcpy(usr[0].pass, "1234");
 	strcpy(usr[1].name, "Brooke");
 	strcpy(usr[1].pass, "qwer");
-
+	strcpy(usr[1].name, "Martin");
+	strcpy(usr[1].pass, "iluvnet");
 	printf("Init auth usesr, test user 1 is %s\n", (usr[0].name) );
 
 	// usr[0].name = "Nabil";
