@@ -37,15 +37,18 @@ int main (int argc, char ** argv) {
    	}
 	//listen for clients, max number specified by MAX_NUM_OF_CLIENTS, block until first connection
 	listen(sock,MAX_NUM_OF_CLIENTS);
-
+	
+	memset(buffer,0,sizeof(buffer));
 
 	while(1) {
-		printf("While loop entered");
+		printf("While loop entered\n");
+		// fflush(stdout);
 		client_fd = accept(sock,(const struct sockaddr *) &client_addr,&len);
 		//will block if there are 0 clients
 
-		// int size = read(client_fd, buffer, BUFFER_SIZE);
-		printf("Server read from client: %s",buffer);
+		int size = read(client_fd, buffer, BUFFER_SIZE);
+		printf("Server read from client: %s\n",buffer);
+		// fflush(stdout);
 	}
 }
 

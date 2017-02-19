@@ -22,8 +22,8 @@ int main (int argc, char ** argv) {
 	char * ip_addr;
 	struct sockaddr_in server_addr;
 	char buffer[BUFFER_SIZE];
+	memset(buffer,0,sizeof(buffer));
 	bcopy(argv[3], buffer, sizeof(argv[3]));
-
 
 	//read in port number and address from args
 	ip_addr = argv[1];
