@@ -22,8 +22,7 @@ int main (int argc, char ** argv) {
 	char * ip_addr;
 	struct sockaddr_in server_addr;
 	char buffer[BUFFER_SIZE];
-	memset(buffer,0,sizeof(buffer));
-	bcopy(argv[3], buffer, sizeof(argv[3]));
+	memset(buffer,0,BUFFER_SIZE);
 
 	//read in port number and address from args
 	ip_addr = argv[1];
@@ -38,22 +37,61 @@ int main (int argc, char ** argv) {
 		return 1;
 	}
 
-	// char *command_line_input;
-	// fgets(command_line_input, 100, stdin);
-	// printf("Commandline: %s\n",command_line_input );
+	char command[100]; 
+	char params[100]; 
+	char line[200];
+	printf("ftp> ");
+	gets(line);
+	printf("%s",line);
+	sscanf(line,"%s %s", command, params);
+	// scanf("%s %s", command, params); 
+	printf("%s\n", command);
+	printf("%s\n", params);
+	if (strcmp(command, "USER") == 0) {
+		memset(buffer,0,BUFFER_SIZE);
+		strcpy(buffer, command);
+		strcat(buffer, " ");
+		strcat(buffer, params);
+		if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+			perror("Writing failed");
+		memset(buffer,0,BUFFER_SIZE);
+		if ( read(sock_fd, buffer, 40) < 0 )
+			perror("Could not read from socket.");
+		printf("%s",buffer);
+	} else if (strcmp(command, "PASS") == 0) {
+		memset(buffer,0,BUFFER_SIZE);
+		strcpy(buffer, command);
+		strcat(buffer, " ");
+		strcat(buffer, params);
+		if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+			perror("Writing failed");
+		memset(buffer,0,BUFFER_SIZE);
+		if ( read(sock_fd, buffer, 40) < 0 )
+			perror("Could not read from socket.");
+		printf("%s",buffer);
+	} else {
+	  	printf("An invalid FTP command.\n");
+	}
 
 
+	// printf("Buffer writes %s\n", buffer);
+	// if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+	// 	perror("Writing failed");
 
-	printf("Buffer writes %s\n", buffer);
-	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-		perror("Writing failed");
+	// FILE * output_stream = fdopen(sock_fd, 'w');
+	// fwrite(buffer, sizeof(buffer[0]), sizeof buffer, output_stream);
+	// fflush(output_stream);
+	// fclose(output_stream);
 
-	memset(buffer,0,sizeof(buffer));
+	// memset(buffer,0,BUFFER_SIZE);
 	
-	if ( read(sock_fd, buffer, 40) < 0 )
-		perror("Could not read from socket.");
-	
-	close(sock_fd);
+	// if ( read(sock_fd, buffer, 40) < 0 )
+	// 	perror("Could not read from socket.");
+	// FILE *input_stream = fdopen(sock_fd, 'r');
+	// fgets(buffer,BUFFER_SIZE,input_stream);
+	// fflush(input_stream);
+	// fclose(input_stream);
+	// close(sock_fd);
 }
 
 int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock) {
