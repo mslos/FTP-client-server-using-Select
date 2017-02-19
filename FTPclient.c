@@ -40,39 +40,40 @@ int main (int argc, char ** argv) {
 	char command[100]; 
 	char params[100]; 
 	char line[200];
-	printf("ftp> ");
-	gets(line);
-	printf("%s",line);
-	sscanf(line,"%s %s", command, params);
-	// scanf("%s %s", command, params); 
-	printf("%s\n", command);
-	printf("%s\n", params);
-	if (strcmp(command, "USER") == 0) {
-		memset(buffer,0,BUFFER_SIZE);
-		strcpy(buffer, command);
-		strcat(buffer, " ");
-		strcat(buffer, params);
-		if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-			perror("Writing failed");
-		memset(buffer,0,BUFFER_SIZE);
-		if ( read(sock_fd, buffer, 40) < 0 )
-			perror("Could not read from socket.");
-		printf("%s",buffer);
-	} else if (strcmp(command, "PASS") == 0) {
-		memset(buffer,0,BUFFER_SIZE);
-		strcpy(buffer, command);
-		strcat(buffer, " ");
-		strcat(buffer, params);
-		if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-			perror("Writing failed");
-		memset(buffer,0,BUFFER_SIZE);
-		if ( read(sock_fd, buffer, 40) < 0 )
-			perror("Could not read from socket.");
-		printf("%s",buffer);
-	} else {
-	  	printf("An invalid FTP command.\n");
+	while(1) {
+		printf("ftp> ");
+		gets(line);
+		// printf("%s",line);
+		sscanf(line,"%s %s", command, params);
+		// scanf("%s %s", command, params); 
+		// printf("%s\n", command);
+		// printf("%s\n", params);
+		if (strcmp(command, "USER") == 0) {
+			memset(buffer,0,BUFFER_SIZE);
+			strcpy(buffer, command);
+			strcat(buffer, " ");
+			strcat(buffer, params);
+			if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+				perror("Writing failed");
+			memset(buffer,0,BUFFER_SIZE);
+			if ( read(sock_fd, buffer, 40) < 0 )
+				perror("Could not read from socket.");
+			printf("%s",buffer);
+		} else if (strcmp(command, "PASS") == 0) {
+			memset(buffer,0,BUFFER_SIZE);
+			strcpy(buffer, command);
+			strcat(buffer, " ");
+			strcat(buffer, params);
+			if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+				perror("Writing failed");
+			memset(buffer,0,BUFFER_SIZE);
+			if ( read(sock_fd, buffer, 40) < 0 )
+				perror("Could not read from socket.");
+			printf("%s",buffer);
+		} else {
+		  	printf("An invalid FTP command.\n");
+		}
 	}
-
 
 	// printf("Buffer writes %s\n", buffer);
 	// if( write(sock_fd, buffer, strlen(buffer)+1) < 0)

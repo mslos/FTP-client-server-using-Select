@@ -17,7 +17,7 @@
 #define MAX_NUM_OF_CLIENTS 5
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
-#define NUM_OF_USERS 1
+#define NUM_OF_USERS 2
 
 typedef struct {
 	int usrFD;
@@ -102,6 +102,7 @@ int main (int argc, char ** argv) {
 				}
 				//event not on listener
 				else {
+					memset(buffer,0,BUFFER_SIZE);
 					int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
 					if( num_of_bytes < 0)
 						perror("Error reading incoming stream");
@@ -129,19 +130,38 @@ int main (int argc, char ** argv) {
 									write(fd, msg1, strlen(msg1) +1);
 									break;
 								}
+								else if (j == NUM_OF_USERS-1) {
+									char msg2[] = "Username does not exist\n";
+									printf("%s",msg2);
+									write(fd, msg2, strlen(msg2) +1);
+								}
 							}
-							char msg3[] = "Username does not exist\n";
-							write(fd, msg3, strlen(msg3) +1);
+
 						}
 					    else if (strcmp(command, "PASS") == 0) {
-							for (int j = 0; j<NUM_OF_USERS; j++) {
+					    	int j;
+							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorizedUsers[j].usrFD == fd) {
 									if(strcmp(authorizedUsers[j].pass, params) == 0) {
-										char msg2[] = "Authentication complete";
-										write(fd, msg2, strlen(msg2) +1);
+										char msg3[] = "Authentication complete\n";
+										printf("%s",msg3);
+										write(fd, msg3, strlen(msg3) +1);
+										authorizedUsers[j].auth = 1;
+										break;
+									}
+									else {
+										char msg4[] = "Password incorrect, try again!\n";
+										printf("%s",msg4);
+										write(fd, msg4, strlen(msg4) +1);
+									}
+
 								}
-								}
-								
+
+							}
+							if (j == NUM_OF_USERS-1) {
+								char msg5[] = "Set USER frist\n";
+								printf("%s",msg5);
+								write(fd, msg5, strlen(msg5) +1);
 							}
 						}
 						else {
@@ -209,6 +229,8 @@ void set_up_authorized_list(user * usr) {
 	}
 	strcpy(usr[0].name, "Nabil");
 	strcpy(usr[0].pass, "1234");
+	strcpy(usr[1].name, "Brooke");
+	strcpy(usr[1].pass, "qwer");
 
 	printf("Init auth usesr, test user 1 is %s\n", (usr[0].name) );
 
