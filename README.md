@@ -27,3 +27,5 @@ Once the server starts, 1 or more clients can connect and are then prompted to a
 PASS
 If the user entered a valid user, and a valid password then the user is authenticated. 
 
+#To view review comments use google spreadsheet.
+https://docs.google.com/a/nyu.edu/spreadsheets/d/1XWKVsJG6vzBNho40SKo-Yv-IgkmJgz-yizVfna04Wco/edit?usp=sharing
