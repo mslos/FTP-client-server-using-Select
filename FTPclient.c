@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <dirent.h>
 #include <wordexp.h>
+#include <stdlib.h>
 
 #include <pwd.h>
 
@@ -105,14 +106,14 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 	*sock = socket(AF_INET, SOCK_STREAM,0);
 
 	if (*sock < 0) {
-      printf(stderr,"Error opening socket\n");
+      perror("Error opening socket\n");
    }
 
 	myaddr->sin_family = AF_INET;
 	myaddr->sin_port = htons(*port);
 	
 	if( inet_aton(addr, &(myaddr->sin_addr))==0 ) {
-		fprintf(stderr, "Error, cannot translate IP into binary\n");
+		perror("Error, cannot translate IP into binary\n");
 	}
 
 	return 0;
@@ -159,27 +160,20 @@ int list_client_files(char * current_directory, char * path){
 }
 
 int change_directory(char * current_directory, char * new_directory){
-	char * new_path[2000]; 
+	char new_path[2000]; 
 	if(new_directory[0] == '/') {
 		strcpy(new_path,new_directory);
 	}
 	else if (new_directory[0]=='~') {
-		char **homedir;
-		// if ((homedir = getenv("HOME")) == NULL) {
-  //   		homedir = getpwuid(getuid())->pw_dir;
-		// }
 	   	wordexp_t p;
-	   	wordexp("~", &p, 0);
-	    homedir = p.we_wordv;
+	   	wordexp(new_directory, &p, 0);
+	    strcpy(new_path,p.we_wordv[0]);
 	    wordfree(&p);
-	    // exit(EXIT_SUCCESS);
-		strcpy(new_path,homedir);
 	}
 	else
 		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
-		printf("Trying to resolve %s\n", new_path);
+		// printf("Trying to resolve %s\n", new_path);
 	DIR* dir = opendir(new_path);
-
 
 	if (dir){
 	    // Directory exists.
