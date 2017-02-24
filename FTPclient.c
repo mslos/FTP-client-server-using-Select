@@ -147,12 +147,20 @@ void list_client_files(char * current_directory){
 
 void change_directory(char * current_directory, char * new_directory){
 	char * new_path[2000]; 
-	strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
+	if(new_directory[0] == '/' || new_directory[0] == '~') {
+		printf("About to change dir to %s\n", new_directory);
+		strcpy(new_path,new_directory);
+	}
+	else
+		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
+	
 	DIR* dir = opendir(new_path);
+
 	if (dir){
 	    // Directory exists.
 	    // TODO: Check if the buffer has space for new file name
-		strcat(strcat(current_directory,"/"),new_directory);
+		// strcat(strcat(current_directory,"/"),new_directory);
+		realpath(new_path,current_directory);
 		printf("Changed directory to %s\n", new_directory);
 	    closedir(dir);
 	}
