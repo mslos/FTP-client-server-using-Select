@@ -47,6 +47,10 @@ int main (int argc, char ** argv) {
 	char command[100]; 
 	char params[100]; 
 	char line[200];
+	// Initialize current directory
+	char current_directory[1000]; //TODO: is this too small
+	getcwd(current_directory, sizeof(current_directory));
+
 	while(1) {
 		printf("ftp> ");
 		gets(line);
@@ -65,8 +69,13 @@ int main (int argc, char ** argv) {
 		} 
 
 		// List Files
-		if (strcmp(command, "LS") == 0) {
-			ls();
+		else if (strcmp(command, "!LS") == 0) {
+			list_client_files(current_directory);
+		} 
+
+		// Current working path
+		else if (strcmp(command, "!PWD") == 0) {
+			printf("%s\n",current_directory);
 		} 
 
 
@@ -89,14 +98,14 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 	*sock = socket(AF_INET, SOCK_STREAM,0);
 
 	if (*sock < 0) {
-      printf(stderr,"Error opening socket");
+      printf(stderr,"Error opening socket\n");
    }
 
 	myaddr->sin_family = AF_INET;
 	myaddr->sin_port = htons(*port);
 	
 	if( inet_aton(addr, &(myaddr->sin_addr))==0 ) {
-		fprintf(stderr, "Error, cannot translate IP into binary");
+		fprintf(stderr, "Error, cannot translate IP into binary\n");
 	}
 
 	return 0;
@@ -109,25 +118,26 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 	strcat(buffer, " ");
 	strcat(buffer, params);
 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-		perror("Writing failed");
+		perror("Writing failed\n");
 	memset(buffer,0,BUFFER_SIZE);
 	if ( read(sock_fd, buffer, 40) < 0 )
-		perror("Could not read from socket.");
+		perror("Could not read from socket.\n");
 	printf("%s",buffer);
 }
 
-void ls(){
-	DIR *dp;
-	struct dirent *ep;     
-	dp = opendir ("./");
+void list_client_files(char * cur_dir){
 
-	if (dp != NULL)
+	DIR *directory_path;
+	struct dirent *file_pointer;     
+	directory_path = opendir (cur_dir);
+
+	if (directory_path != NULL)
 	{
-	while (ep = readdir (dp))
-	  puts (ep->d_name);
+	while (file_pointer = readdir (directory_path))
+	  puts (file_pointer->d_name);
 
-	(void) closedir (dp);
+	(void) closedir (directory_path);
 	}
 	else
-	perror ("Couldn't open the directory");
+	perror ("Couldn't open the directory\n");
 }
