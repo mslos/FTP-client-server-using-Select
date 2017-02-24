@@ -7,7 +7,9 @@
 #include <string.h>
 #include <errno.h>
 #include <dirent.h>
+#include <wordexp.h>
 
+#include <pwd.h>
 
 #define BUFFER_SIZE 500
 
@@ -54,7 +56,8 @@ int main (int argc, char ** argv) {
 	while(1) {
 		printf("ftp> ");
 		gets(line);
-		
+		memset(command,0,sizeof(command));
+		memset(params,0,sizeof(params));
 		// Parse input on space
 		sscanf(line,"%s %s", command, params);
 		
@@ -70,7 +73,7 @@ int main (int argc, char ** argv) {
 
 		// List Files
 		else if (strcmp(command, "!LS") == 0) {
-			list_client_files(current_directory);
+			list_client_files(current_directory, params);
 		} 
 
 		// Current working path
@@ -90,7 +93,7 @@ int main (int argc, char ** argv) {
 			printf("Goodbye. \n");
 		}
 
-		// Command not found
+			// Command not found
 		else {
 		  	printf("Invalid FTP command.\n");
 		}
@@ -129,32 +132,54 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 	printf("%s",buffer);
 }
 
-void list_client_files(char * current_directory){
+int list_client_files(char * current_directory, char * path){
+	char tmp_cur[2000];
+	strcpy(tmp_cur, current_directory);
+
+	if(strcmp(path,"")) {
+		if(change_directory(tmp_cur, path) != 0) {
+			printf("Error, directory does not exist!\n");
+			return 1;
+		}
+	}
 
 	DIR *directory_path;
 	struct dirent *file_pointer;     
-	directory_path = opendir (current_directory);
+	directory_path = opendir (tmp_cur);
 
 	if (directory_path != NULL){
 		while (file_pointer = readdir (directory_path))
 		  puts (file_pointer->d_name);
 
 		(void) closedir (directory_path);
+		return 0;
 	}
 	else
 		perror ("Couldn't open the directory\n");
 }
 
-void change_directory(char * current_directory, char * new_directory){
+int change_directory(char * current_directory, char * new_directory){
 	char * new_path[2000]; 
-	if(new_directory[0] == '/' || new_directory[0] == '~') {
-		printf("About to change dir to %s\n", new_directory);
+	if(new_directory[0] == '/') {
 		strcpy(new_path,new_directory);
+	}
+	else if (new_directory[0]=='~') {
+		char **homedir;
+		// if ((homedir = getenv("HOME")) == NULL) {
+  //   		homedir = getpwuid(getuid())->pw_dir;
+		// }
+	   	wordexp_t p;
+	   	wordexp("~", &p, 0);
+	    homedir = p.we_wordv;
+	    wordfree(&p);
+	    // exit(EXIT_SUCCESS);
+		strcpy(new_path,homedir);
 	}
 	else
 		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
-	
+		printf("Trying to resolve %s\n", new_path);
 	DIR* dir = opendir(new_path);
+
 
 	if (dir){
 	    // Directory exists.
@@ -163,12 +188,15 @@ void change_directory(char * current_directory, char * new_directory){
 		realpath(new_path,current_directory);
 		printf("Changed directory to %s\n", new_directory);
 	    closedir(dir);
+	    return 0;
 	}
 	else if (ENOENT == errno){
 	    //Directory does not exist.
 	    printf("Directory does not exist. \n");
+	    return 1;
 	}
-	else{
+	else {
 	    printf("CD failed.\n");
+	    return 2;
 	}
 }
