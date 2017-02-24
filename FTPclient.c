@@ -78,6 +78,10 @@ int main (int argc, char ** argv) {
 			printf("%s\n",current_directory);
 		} 
 
+		// Change directory
+		else if (strcmp(command, "!CD") == 0) {
+			change_directory(current_directory, params);
+		} 
 
 		// Exit
 		// TODO: Quit FTP connection?
@@ -125,19 +129,38 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 	printf("%s",buffer);
 }
 
-void list_client_files(char * cur_dir){
+void list_client_files(char * current_directory){
 
 	DIR *directory_path;
 	struct dirent *file_pointer;     
-	directory_path = opendir (cur_dir);
+	directory_path = opendir (current_directory);
 
-	if (directory_path != NULL)
-	{
-	while (file_pointer = readdir (directory_path))
-	  puts (file_pointer->d_name);
+	if (directory_path != NULL){
+		while (file_pointer = readdir (directory_path))
+		  puts (file_pointer->d_name);
 
-	(void) closedir (directory_path);
+		(void) closedir (directory_path);
 	}
 	else
-	perror ("Couldn't open the directory\n");
+		perror ("Couldn't open the directory\n");
+}
+
+void change_directory(char * current_directory, char * new_directory){
+	char * new_path[2000]; 
+	strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
+	DIR* dir = opendir(new_path);
+	if (dir){
+	    // Directory exists.
+	    // TODO: Check if the buffer has space for new file name
+		strcat(strcat(current_directory,"/"),new_directory);
+		printf("Changed directory to %s\n", new_directory);
+	    closedir(dir);
+	}
+	else if (ENOENT == errno){
+	    //Directory does not exist.
+	    printf("Directory does not exist. \n");
+	}
+	else{
+	    printf("CD failed.\n");
+	}
 }
