@@ -95,9 +95,7 @@ int main (int argc, char ** argv) {
 				// Check for new connections
 				if (fd==listener_sock){
 					printf("listener_sock");
-					// accept_connection(new_connection, listener_sock, client_addr, master_fds, max_fd_num,len);
-					//printf("")
-					//accept_connection(new_connection, listener_sock, client_addr, master_fds, max_fd_num, len);			
+					// accept_connection(new_connection, listener_sock, client_addr, master_fds, max_fd_num,len);			
 					len = sizeof(client_addr);
 					// Accept new connection
 					if((new_connection =accept(listener_sock,(const struct sockaddr *) &client_addr,&len))<0){

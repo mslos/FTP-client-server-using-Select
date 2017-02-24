@@ -6,6 +6,8 @@
 #include <netinet/ip.h> /* superset of previous */
 #include <string.h>
 #include <errno.h>
+#include <dirent.h>
+
 
 #define BUFFER_SIZE 500
 
@@ -62,6 +64,12 @@ int main (int argc, char ** argv) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 		} 
 
+		// List Files
+		if (strcmp(command, "LS") == 0) {
+			ls();
+		} 
+
+
 		// Exit
 		// TODO: Quit FTP connection?
 		else if (strcmp(command, "QUIT") == 0) {
@@ -106,4 +114,20 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 	if ( read(sock_fd, buffer, 40) < 0 )
 		perror("Could not read from socket.");
 	printf("%s",buffer);
+}
+
+void ls(){
+	DIR *dp;
+	struct dirent *ep;     
+	dp = opendir ("./");
+
+	if (dp != NULL)
+	{
+	while (ep = readdir (dp))
+	  puts (ep->d_name);
+
+	(void) closedir (dp);
+	}
+	else
+	perror ("Couldn't open the directory");
 }
