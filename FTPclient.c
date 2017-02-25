@@ -68,6 +68,13 @@ int main (int argc, char ** argv) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 		} 
 
+		// Upload file to server
+		else if (strcmp(command, "PUT") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+			 sendfile(sock_fd, client_fd, NULL, sizeof());
+
+		} 
+
 		// List Files
 		else if (strcmp(command, "!LS") == 0) {
 			list_client_files(current_directory);
@@ -117,6 +124,20 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 
 
 void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buffer){
+	memset(buffer,0,BUFFER_SIZE);
+	strcpy(buffer, command);
+	strcat(buffer, " ");
+	strcat(buffer, params);
+	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+		perror("Writing failed\n");
+	memset(buffer,0,BUFFER_SIZE);
+	if ( read(sock_fd, buffer, 40) < 0 )
+		perror("Could not read from socket.\n");
+	printf("%s",buffer);
+}
+
+
+void put_file(){
 	memset(buffer,0,BUFFER_SIZE);
 	strcpy(buffer, command);
 	strcat(buffer, " ");
