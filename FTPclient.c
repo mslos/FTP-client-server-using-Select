@@ -7,7 +7,10 @@
 #include <string.h>
 #include <errno.h>
 #include <dirent.h>
+#include <wordexp.h>
+#include <stdlib.h>
 
+#include <pwd.h>
 
 #define BUFFER_SIZE 500
 
@@ -54,7 +57,8 @@ int main (int argc, char ** argv) {
 	while(1) {
 		printf("ftp> ");
 		gets(line);
-		
+		memset(command,0,sizeof(command));
+		memset(params,0,sizeof(params));
 		// Parse input on space
 		sscanf(line,"%s %s", command, params);
 		
@@ -68,16 +72,16 @@ int main (int argc, char ** argv) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 		} 
 
-		// Upload file to server
-		else if (strcmp(command, "PUT") == 0) {
-			parse_arg_to_buffer(command, params, sock_fd, buffer);
-			 sendfile(sock_fd, client_fd, NULL, sizeof());
+		// // Upload file to server
+		// else if (strcmp(command, "PUT") == 0) {
+		// 	parse_arg_to_buffer(command, params, sock_fd, buffer);
+		// 	 sendfile(sock_fd, client_fd, NULL, sizeof());
 
-		} 
+		// } 
 
 		// List Files
 		else if (strcmp(command, "!LS") == 0) {
-			list_client_files(current_directory);
+			list_client_files(current_directory, params);
 		} 
 
 		// Current working path
@@ -97,7 +101,7 @@ int main (int argc, char ** argv) {
 			printf("Goodbye. \n");
 		}
 
-		// Command not found
+			// Command not found
 		else {
 		  	printf("Invalid FTP command.\n");
 		}
@@ -109,14 +113,14 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 	*sock = socket(AF_INET, SOCK_STREAM,0);
 
 	if (*sock < 0) {
-      printf(stderr,"Error opening socket\n");
+      perror("Error opening socket\n");
    }
 
 	myaddr->sin_family = AF_INET;
 	myaddr->sin_port = htons(*port);
 	
 	if( inet_aton(addr, &(myaddr->sin_addr))==0 ) {
-		fprintf(stderr, "Error, cannot translate IP into binary\n");
+		perror("Error, cannot translate IP into binary\n");
 	}
 
 	return 0;
@@ -137,44 +141,63 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 }
 
 
-void put_file(){
-	memset(buffer,0,BUFFER_SIZE);
-	strcpy(buffer, command);
-	strcat(buffer, " ");
-	strcat(buffer, params);
-	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-		perror("Writing failed\n");
-	memset(buffer,0,BUFFER_SIZE);
-	if ( read(sock_fd, buffer, 40) < 0 )
-		perror("Could not read from socket.\n");
-	printf("%s",buffer);
-}
 
-void list_client_files(char * current_directory){
+// void put_file(){
+// 	memset(buffer,0,BUFFER_SIZE);
+// 	strcpy(buffer, command);
+// 	strcat(buffer, " ");
+// 	strcat(buffer, params);
+// 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
+// 		perror("Writing failed\n");
+// 	memset(buffer,0,BUFFER_SIZE);
+// 	if ( read(sock_fd, buffer, 40) < 0 )
+// 		perror("Could not read from socket.\n");
+// 	printf("%s",buffer);
+// }
+
+
+
+int list_client_files(char * current_directory, char * path){
+	char tmp_cur[2000];
+	strcpy(tmp_cur, current_directory);
+
+	if(strcmp(path,"")) {
+		if(change_directory(tmp_cur, path) != 0) {
+			printf("Error, directory does not exist!\n");
+			return 1;
+		}
+	}
+
 
 	DIR *directory_path;
 	struct dirent *file_pointer;     
-	directory_path = opendir (current_directory);
+	directory_path = opendir (tmp_cur);
 
 	if (directory_path != NULL){
 		while (file_pointer = readdir (directory_path))
 		  puts (file_pointer->d_name);
 
 		(void) closedir (directory_path);
+		return 0;
 	}
 	else
 		perror ("Couldn't open the directory\n");
 }
 
-void change_directory(char * current_directory, char * new_directory){
-	char * new_path[2000]; 
-	if(new_directory[0] == '/' || new_directory[0] == '~') {
-		printf("About to change dir to %s\n", new_directory);
+int change_directory(char * current_directory, char * new_directory){
+	char new_path[2000]; 
+	if(new_directory[0] == '/') {
 		strcpy(new_path,new_directory);
+	}
+	else if (new_directory[0]=='~') {
+	   	wordexp_t p;
+	   	wordexp(new_directory, &p, 0);
+	    strcpy(new_path,p.we_wordv[0]);
+	    wordfree(&p);
 	}
 	else
 		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
-	
+		// printf("Trying to resolve %s\n", new_path);
 	DIR* dir = opendir(new_path);
 
 	if (dir){
@@ -184,12 +207,15 @@ void change_directory(char * current_directory, char * new_directory){
 		realpath(new_path,current_directory);
 		printf("Changed directory to %s\n", new_directory);
 	    closedir(dir);
+	    return 0;
 	}
 	else if (ENOENT == errno){
 	    //Directory does not exist.
 	    printf("Directory does not exist. \n");
+	    return 1;
 	}
-	else{
+	else {
 	    printf("CD failed.\n");
+	    return 2;
 	}
 }
