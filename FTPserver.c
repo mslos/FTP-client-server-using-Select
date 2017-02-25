@@ -16,6 +16,7 @@
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
 #define NUM_OF_USERS 3
+#define FILE_TRANSFER_PORT 2000
 
 typedef struct {
 	int usrFD;
@@ -35,9 +36,9 @@ int main (int argc, char ** argv) {
 	}
 
 	 // TCP protocol, same as opening a file
-	int port, listener_sock, len, client_fd;
+	int port, listener_sock, file_transfer_sock, len, client_fd;
 	char * ip_addr;
-	struct sockaddr_in server_addr, client_addr;
+	struct sockaddr_in server_addr, client_addr, file_transfer_addr;
 	char buffer[BUFFER_SIZE];
 	len = sizeof(client_addr); //necessary since accept requires lvalue - why?
 
@@ -57,26 +58,30 @@ int main (int argc, char ** argv) {
 	ip_addr = argv[1];
 	port = atoi(argv[2]);
 
-	// Create socket descriptor
-	open_socket(&server_addr, &port, ip_addr, &listener_sock);
+	// // Create socket descriptor
+	// open_socket(&server_addr, &port, ip_addr, &listener_sock);
 	
-	// Bind socket to port and address
-	if (bind(listener_sock, &server_addr, sizeof(server_addr)) < 0) {
-      perror("Could not bind socket");
-   	}
+
+	// // Bind socket to port and address
+	// if (bind(listener_sock, &server_addr, sizeof(server_addr)) < 0) {
+ //      perror("Could not bind socket");
+ //   	}
+
+	openTCPport(&server_addr, &port, ip_addr, &listener_sock);
 
 	// Listen for clients, max number specified by MAX_NUM_OF_CLIENTS, block until first connection
 	if ( listen(listener_sock,MAX_NUM_OF_CLIENTS) < 0)
 		perror("Error in listening on  listener socket");
 	
+
 	memset(buffer,0,sizeof(buffer));
 
 	// Add listener into fd set for select
 	FD_SET(listener_sock, &master_fds);
 	max_fd_num = listener_sock;
 
-
 	while(1) {
+
 
 		// Select() with error checking
 		// Add connection to temp_fd before validating 
@@ -127,11 +132,10 @@ int main (int argc, char ** argv) {
 
 						if (strcmp(command, "USER") == 0) {
 							user_command(authorized_users, params, fd);
-
 						}
 
 					    else if (strcmp(command, "PASS") == 0) {
-					    	pass_command(authorized_users, params, fd, NUM_OF_USERS);
+					    	pass_command(authorized_users, params, fd);
 						}
 						else {
 						  	printf("An invalid FTP command.\n");
@@ -187,6 +191,15 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 	}
 
 	return 0;
+}
+
+void openTCPport(struct sockaddr_in * myaddr, int *port, char * ip_addr, int * sock){
+	// Create filetransfer socket descriptor
+	open_socket(myaddr, port, ip_addr, sock);
+
+	if (bind(*sock, myaddr, sizeof(*myaddr)) < 0) {
+	      perror("Could not bind socket");
+	}
 }
 
 void set_up_authorized_list(user * usr) {
@@ -257,8 +270,9 @@ void pass_command(user * authorized_users, char * params, int fd){
 		}
 
 	}
+		printf("Loop iteratio n%d\n", j);
 
-	if (j == NUM_OF_USERS-1) {
+	if (j == NUM_OF_USERS) {
 		char msg5[] = "Set USER frist\n";
 		printf("%s",msg5);
 		write(fd, msg5, strlen(msg5) +1);
