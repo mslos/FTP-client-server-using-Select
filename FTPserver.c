@@ -16,7 +16,8 @@
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
 #define NUM_OF_USERS 3
-#define FILE_TRANSFER_PORT 2000
+#define FILE_TRANSFER_PORT 7000
+#define MAX_PATH_SIZE 500
 
 typedef struct {
 	int usrFD;
@@ -27,6 +28,7 @@ typedef struct {
 	int transFD;
 	FILE * incoming_file;
 } user;
+
 
 void set_up_authorized_list(user * usr);
 
@@ -96,14 +98,18 @@ int main (int argc, char ** argv) {
 	FD_ZERO(&file_transfer_fds);
 	FD_ZERO(&temp_file_fds);
 
+	struct timeval tv;
+	tv.tv_sec = 1;
+
 	while(1) {
 
 		// Select() with error checking
 		// Add connection to temp_fd before validating 
 		temp_fds = master_fds;
-		if( select(connection_fd_range+1, &temp_fds, NULL, NULL, NULL) == -1) {
+		if( select(connection_fd_range+1, &temp_fds, NULL, NULL, &tv) == -1) {
 			perror("Select() failed");
 		}
+		tv.tv_sec = 1;
 
 		int fd, new_connection;
 		// Iterate through all fds
@@ -161,7 +167,16 @@ int main (int argc, char ** argv) {
 									put_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
 										&file_fd_range, &file_transfer_addr, &(authorized_users[j]));
 									printf("returned to while loop\n");
-									authorized_users[j].incoming_file = fopen(params,"a");
+									char path [MAX_PATH_SIZE];
+									memset(path,0,sizeof(path));
+									strcat(path,authorized_users[j].current_directory);
+									strcat(path,"/");
+									strcat(path,params);
+									if ((authorized_users[j].incoming_file = fopen(path,"a"))==NULL)
+									{
+										perror("Cannot create file");
+									}
+									fputs("gdfggdfg",authorized_users[j].incoming_file);
 									memset(command,0,sizeof(command));
 									memset(params,0,sizeof(params));
 									break;
@@ -190,9 +205,10 @@ int main (int argc, char ** argv) {
 			printf("in file transfer loop\n");
 			// Select for file transfers
 			temp_file_fds = file_transfer_fds;
-			if( select(file_fd_range+1, &temp_file_fds, NULL, NULL, NULL) == -1) {
+			if( select(file_fd_range+1, &temp_file_fds, NULL, NULL, &tv) == -1) {
 				perror("Select() failed\n");
 			}
+			tv.tv_sec = 1;
 
 			// int fd, new_connection;
 			// Iterate through all fds
@@ -219,11 +235,10 @@ int main (int argc, char ** argv) {
 							perror("Error reading incoming stream\n");
 						else if (num_of_bytes == 0) {
 							printf("Socket %d closed\n",fd);
-							FD_CLR(fd, &master_fds);
+							FD_CLR(fd, &file_transfer_fds);
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].transFD == fd) {
-									printf("TransFD found\n");
-									fprintf(authorized_users[j].incoming_file,buffer);
+									printf("Closing the file transfer\n");
 									fclose(authorized_users[j].incoming_file);
 								}
 							}						
@@ -232,7 +247,7 @@ int main (int argc, char ** argv) {
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].transFD == fd) {
 									printf("TransFD found\n");
-									fprintf(authorized_users[j].incoming_file,buffer);
+									fputs(buffer,authorized_users[j].incoming_file);
 								}
 							}						
 						}
@@ -279,9 +294,12 @@ void set_up_authorized_list(user * usr) {
 	for (int i = 0; i < NUM_OF_USERS; i++) {
 		usr[i].name = (char *) malloc(MAX_NAME_SIZE);
 		usr[i].pass = (char *) malloc(MAX_PASS_SIZE);
+		usr[i].current_directory = malloc(MAX_PATH_SIZE);
+		strcpy(usr[i].current_directory, "/home/cs217/Desktop");
 		usr[i].auth = 0;
 		usr[i].usrFD = -1;
 	}
+
 	strcpy(usr[0].name, "Nabil");
 	strcpy(usr[0].pass, "1234");
 	strcpy(usr[1].name, "Brooke");

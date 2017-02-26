@@ -15,6 +15,8 @@
 #include <sys/sendfile.h>
 
 #define BUFFER_SIZE 500
+#define FILE_TRANSFER_PORT 7000
+
 
 
 int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock);
@@ -156,9 +158,9 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 		printf("Error opening file\n");
 		return;
 	} // Open the file
-	else{
+	else {
 		printf("Opened file successfully\n");
-		*port = 2000; 
+		*port = FILE_TRANSFER_PORT; 
 
 		// Open a new TCP connection
 		openTCP(server_addr, port, ip_addr, sock_fd);
@@ -178,10 +180,6 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 		if(bytes_sent < 0) {
 			printf("Error, send file failed.\n");
 		}
-		else{
-			total_bytes_sent += bytes_sent;
-		}
-
 
 		close(*sock_fd);
 		close(src);
