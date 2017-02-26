@@ -9,7 +9,8 @@
 #include <dirent.h>
 #include <wordexp.h>
 #include <stdlib.h>
-
+#include <sys/stat.h> 
+#include <fcntl.h>
 #include <pwd.h>
 
 #define BUFFER_SIZE 500
@@ -79,9 +80,8 @@ int main (int argc, char ** argv) {
 		// Upload file to server
 		else if (strcmp(command, "PUT") == 0) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
-			file_port = 7000;
-			openTCP(&file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
-			close(file_transfer_fd);
+			put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+			
 		} 
 
 		// List Files
@@ -147,18 +147,30 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 
 
 
-// void put_file(char * filename){
-// 	int size = 10000 // TODO: how to make the size of the file
-// 	char file_buffer[size]; 
-// 	int file = open(filename, O_CREAT | O_EXCL | O_WRONLY, 0666);
-// 	read(file, file_buffer, size, 0);
-// 	// Open new TCP connection
-// 	openTCP();
-// 	//write the file
+void put_file(char * filename, struct sockaddr_in * server_addr, 
+	int * port, char * ip_addr, int * sock_fd){
 
-// 	closeTCP
-// 	close(file);
-// }
+	// Open new TCP connection
+	struct stat st;
+	int src = open(filename, O_RDONLY);
+	*port = 7000;
+	openTCP(server_addr, port, ip_addr, sock_fd);
+
+	//does this return the right size?
+	fstat(src, &st);
+
+	//must send server information about file size
+
+	//must confirm that we sent complete file (sendfile returns bytes transferred)
+	sendfile(src,*sock_fd,NULL,st.st_size);
+
+	close(*sock_fd);
+	close(src);
+
+	//write the file
+	//TODO
+	// close(file);
+}
 
 
 

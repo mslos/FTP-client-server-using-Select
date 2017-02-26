@@ -207,6 +207,8 @@ int main (int argc, char ** argv) {
 					// Event not on listener
 					else {
 						memset(buffer,0,BUFFER_SIZE);
+						//I think we shoud read here, need to handshake to anticipate number of bytes in the file
+						// open file descriptor (create if not exist), and write into the file
 						int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
 
 						if( num_of_bytes < 0)
