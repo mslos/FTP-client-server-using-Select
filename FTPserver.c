@@ -76,7 +76,7 @@ int main (int argc, char ** argv) {
 	openTCPport(&server_addr, &port, ip_addr, &listener_sock);
 
 	// Open port for file transfer
-	openTCPport(&server_addr, &file_port, ip_addr, &file_transfer_sock);
+	openTCPport(&file_transfer_addr, &file_port, ip_addr, &file_transfer_sock);
 
 
 	// Listen for clients, max number specified by MAX_NUM_OF_CLIENTS, block until first connection
