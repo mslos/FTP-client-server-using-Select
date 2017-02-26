@@ -26,9 +26,9 @@ int main (int argc, char ** argv) {
 	// 	printf("Argument %d is %s\n", i, argv[i]);
 	// }
 	
-	int port, sock_fd, len, client_fd;
+	int port, sock_fd, len, client_fd, file_transfer_fd, file_port;
 	char * ip_addr;
-	struct sockaddr_in server_addr;
+	struct sockaddr_in server_addr, file_transfer_addr;
 	char buffer[BUFFER_SIZE];
 	memset(buffer,0,BUFFER_SIZE);
 
@@ -36,15 +36,19 @@ int main (int argc, char ** argv) {
 	ip_addr = argv[1];
 	port = atoi(argv[2]); // Convert string to int 
 
+	openTCP(&server_addr, &port, ip_addr, &sock_fd);
 
-	open_socket(&server_addr, &port, ip_addr, &sock_fd);
 
-	int ret = connect(sock_fd,(const struct sockaddr *) &server_addr, sizeof(server_addr));
 
-	if (ret < 0) {
-		perror("Error happened while connecting in client\n");
-		return 1;
-	}
+
+	// open_socket(&server_addr, &port, ip_addr, &sock_fd);
+
+	// int ret = connect(sock_fd,(const struct sockaddr *) &server_addr, sizeof(server_addr));
+
+	// if (ret < 0) {
+	// 	perror("Error happened while connecting in client\n");
+	// 	return 1;
+	// }
 
 	// Read in commands from client
 	char command[100]; 
@@ -72,12 +76,13 @@ int main (int argc, char ** argv) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 		} 
 
-		// // Upload file to server
-		// else if (strcmp(command, "PUT") == 0) {
-		// 	parse_arg_to_buffer(command, params, sock_fd, buffer);
-		// 	 sendfile(sock_fd, client_fd, NULL, sizeof());
-
-		// } 
+		// Upload file to server
+		else if (strcmp(command, "PUT") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+			file_port = 7000;
+			openTCP(&file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+			close(file_transfer_fd);
+		} 
 
 		// List Files
 		else if (strcmp(command, "!LS") == 0) {
@@ -142,17 +147,17 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 
 
 
-// void put_file(){
-// 	memset(buffer,0,BUFFER_SIZE);
-// 	strcpy(buffer, command);
-// 	strcat(buffer, " ");
-// 	strcat(buffer, params);
-// 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
-// 		perror("Writing failed\n");
-// 	memset(buffer,0,BUFFER_SIZE);
-// 	if ( read(sock_fd, buffer, 40) < 0 )
-// 		perror("Could not read from socket.\n");
-// 	printf("%s",buffer);
+// void put_file(char * filename){
+// 	int size = 10000 // TODO: how to make the size of the file
+// 	char file_buffer[size]; 
+// 	int file = open(filename, O_CREAT | O_EXCL | O_WRONLY, 0666);
+// 	read(file, file_buffer, size, 0);
+// 	// Open new TCP connection
+// 	openTCP();
+// 	//write the file
+
+// 	closeTCP
+// 	close(file);
 // }
 
 
@@ -218,4 +223,19 @@ int change_directory(char * current_directory, char * new_directory){
 	    printf("CD failed.\n");
 	    return 2;
 	}
+}
+
+
+void openTCP(struct sockaddr_in * server_addr, 
+	int * port, char * ip_addr, int * sock_fd){
+	// printf("Entered openTCP.");
+	open_socket(server_addr, port, ip_addr, sock_fd);
+	// printf("Seems like connection went through.");
+
+	int ret = connect(*sock_fd,(const struct sockaddr *) server_addr, sizeof(*server_addr));
+	if (ret < 0) {
+		perror("Error happened while connecting in client\n");
+		return 1;
+	}
+
 }
