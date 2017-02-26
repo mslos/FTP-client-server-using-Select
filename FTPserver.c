@@ -23,7 +23,9 @@ typedef struct {
 	char * name;
 	char * pass;
 	int auth;
-	// char * current_directory;
+	char * current_directory;
+	int transFD;
+	FILE * incoming_file;
 } user;
 
 void set_up_authorized_list(user * usr);
@@ -55,7 +57,7 @@ int main (int argc, char ** argv) {
 	ip_addr = argv[1];
 	port = atoi(argv[2]);
 
-	file_port = 7000;
+	file_port = FILE_TRANSFER_PORT;
 	// // Create socket descriptor
 	// open_socket(&server_addr, &port, ip_addr, &listener_sock);
 	
@@ -151,12 +153,25 @@ int main (int argc, char ** argv) {
 						}
 
 						else if(strcmp(command, "PUT")==0){
-							char msg1[] = "File upload request recieved\n";
+							int j;
+							char msg1[] = "File upload request received.\n";
 							write(fd, msg1, strlen(msg1) +1);
-							put_command(&file_transfer_sock, &first_connection, &file_transfer_fds, &file_fd_range);
-							printf("returned to while loop\n");
-							memset(command,0,sizeof(command));
-							memset(params,0,sizeof(params));
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
+									put_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
+										&file_fd_range, &file_transfer_addr, &(authorized_users[j]));
+									printf("returned to while loop\n");
+									authorized_users[j].incoming_file = fopen(params,"a");
+									memset(command,0,sizeof(command));
+									memset(params,0,sizeof(params));
+									break;
+								}
+							}
+							if (j == NUM_OF_USERS) {
+								char msg5[] = "File upload request: Authenticate first!\n";
+								printf("%s",msg5);
+								// write(fd, msg5, strlen(msg5) +1);
+							}
 						}
 						else {
 						  	printf("An invalid FTP command.\n");
@@ -188,39 +203,38 @@ int main (int argc, char ** argv) {
 
 					// Check for new connections
 					if (fd==file_transfer_sock){
-						printf("file_transfer_sock\n");
-						// accept_connection(new_connection, listener_sock, client_addr, master_fds, connection_fd_range,len);			
-						len = sizeof(file_transfer_addr);
-						// Accept new connection
-						if((new_connection =accept(file_transfer_sock,(const struct sockaddr *) &file_transfer_addr,&len))<0){
-							perror("Server cannot accept file transfer connection");
-						} else {
-							// Add to master set
-							FD_SET(new_connection, &file_transfer_fds);
-							if (new_connection>file_fd_range){
-								file_fd_range=new_connection;
-								printf("New file transfer connection successfuly added into fd set\n");
-							}
-						}
 					}
 					// Event not on listener
 					else {
 						//memset(buffer,0,BUFFER_SIZE);
 						printf("in else\n");
-						break;
 						// I think we shoud read here, need to handshake to anticipate number of bytes in the file
 						// open file descriptor (create if not exist), and write into the file
 						int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
+
+						printf("Buffer is %s\n", buffer);
+						int j;
 
 						if( num_of_bytes < 0)
 							perror("Error reading incoming stream\n");
 						else if (num_of_bytes == 0) {
 							printf("Socket %d closed\n",fd);
 							FD_CLR(fd, &master_fds);
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if(authorized_users[j].transFD == fd) {
+									printf("TransFD found\n");
+									fprintf(authorized_users[j].incoming_file,buffer);
+									fclose(authorized_users[j].incoming_file);
+								}
+							}						
 						}
-						else {
-							printf("Error with something else on listener\n");
-							
+						else { 
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if(authorized_users[j].transFD == fd) {
+									printf("TransFD found\n");
+									fprintf(authorized_users[j].incoming_file,buffer);
+								}
+							}						
 						}
 						
 
@@ -340,7 +354,8 @@ void pass_command(user * authorized_users, char * params, int fd){
 
 }
 
-void accept_connection(int new_connection, int * listener_sock, struct sockaddr_in * client_addr, fd_set master_fds, int connection_fd_range, int * len){
+void accept_connection(int new_connection, int * listener_sock, struct sockaddr_in * client_addr, 
+	fd_set master_fds, int connection_fd_range, int * len){
 	len = sizeof(client_addr);
 	// Accept new connection
 	if((new_connection =accept(listener_sock,(const struct sockaddr *) &client_addr,&len))<0){
@@ -355,8 +370,10 @@ void accept_connection(int new_connection, int * listener_sock, struct sockaddr_
 	}
 }
 
-void put_command(int * file_transfer_sock, int * first_connection, fd_set * file_transfer_fds, int * file_fd_range){
-	
+void put_command(int * file_transfer_sock, int * first_connection, 
+	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, user * usr){
+	int new_connection, len;
+	len = sizeof(file_transfer_addr);
 	// Listen for clients, max number specified by MAX_NUM_OF_CLIENTS, block until first connection
 	if(*first_connection){
 		printf("file connection starting\n");
@@ -371,5 +388,19 @@ void put_command(int * file_transfer_sock, int * first_connection, fd_set * file
 	FD_SET(*file_transfer_sock, file_transfer_fds);
 
 	*file_fd_range = *file_transfer_sock;
+
+	if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
+		perror("Server cannot accept file transfer connection");
+	} 
+	else {
+		printf("Accepted connection\n");
+		usr->transFD = new_connection;
+		// Add to master set
+		FD_SET(new_connection, file_transfer_fds);
+		if (new_connection>*file_fd_range){
+			*file_fd_range=new_connection;
+			printf("New file transfer connection successfuly added into fd set\n");
+		}
+	}
 
 }

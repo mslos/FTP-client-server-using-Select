@@ -12,6 +12,7 @@
 #include <sys/stat.h> 
 #include <fcntl.h>
 #include <pwd.h>
+#include <sys/sendfile.h>
 
 #define BUFFER_SIZE 500
 
@@ -157,13 +158,14 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 	} // Open the file
 	else{
 		printf("Opened file successfully\n");
-		*port = 7000; 
+		*port = 2000; 
 
 		// Open a new TCP connection
 		openTCP(server_addr, port, ip_addr, sock_fd);
 
 		// TODO: does this return the right size?
 		fstat(src, &st);
+		printf("Size of file is %d\n",st.st_size);
 		int bytes_sent;
 		int total_bytes_sent = 0;
 
@@ -171,7 +173,8 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 		// read until program 
 		// if sock closed, return 0
 		//must confirm that we sent complete file (sendfile returns bytes transferred)
-		bytes_sent = sendfile(src,*sock_fd,NULL,st.st_size);
+		bytes_sent = sendfile(*sock_fd,src,NULL,st.st_size);
+
 		if(bytes_sent < 0) {
 			printf("Error, send file failed.\n");
 		}
