@@ -9,6 +9,9 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <dirent.h>
+
+#include <wordexp.h>
 
 
 #define BUFFER_SIZE 500
@@ -148,6 +151,8 @@ int main (int argc, char ** argv) {
 					else {
 						char command[100]; 
 						char params[100]; 
+						memset(command,0,sizeof(command));
+						memset(params,0,sizeof(params));
 						parse_command(command, params, buffer, fd);
 
 						if (strcmp(command, "USER") == 0) {
@@ -187,6 +192,19 @@ int main (int argc, char ** argv) {
 								printf("%s",msg5);
 								// write(fd, msg5, strlen(msg5) +1);
 							}
+						}
+
+						else if (strcmp(command, "LS") == 0) {
+							list_server_files(authorized_users, params, fd);
+
+
+							// list_server_files(current_directory, params);
+							// change_directory(current_directory, params);
+							// user_command(authorized_users, params, fd);
+						}
+						else if (strcmp(command, "CD") == 0) {
+							// change_directory(current_directory, params);
+							// user_command(authorized_users, params, fd);
 						}
 						else {
 						  	printf("An invalid FTP command.\n");
@@ -422,3 +440,108 @@ void put_command(int * file_transfer_sock, int * first_connection,
 	}
 
 }
+
+
+int change_directory(char * current_directory, char * new_directory){
+	char new_path[2000]; 
+	if(new_directory[0] == '/') {
+		strcpy(new_path,new_directory);
+	}
+	else if (new_directory[0]=='~') {
+	   	wordexp_t p;
+	   	wordexp(new_directory, &p, 0);
+	    strcpy(new_path,p.we_wordv[0]);
+	    wordfree(&p);
+	}
+	else
+		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
+		// printf("Trying to resolve %s\n", new_path);
+	DIR* dir = opendir(new_path);
+
+	if (dir){
+	    // Directory exists.
+	    // TODO: Check if the buffer has space for new file name
+		// strcat(strcat(current_directory,"/"),new_directory);
+		realpath(new_path,current_directory);
+		printf("Changed directory to %s\n", new_directory);
+	    closedir(dir);
+	    return 0;
+	}
+	else if (ENOENT == errno){
+	    //Directory does not exist.
+	    printf("Directory does not exist. \n");
+	    return 1;
+	}
+	else {
+	    printf("CD failed.\n");
+	    return 2;
+	}
+}
+
+int list_server_files(user * authorized_users, char * path, int fd){
+	// char msg1[] = "List command called\n";
+	// write(fd, msg1, strlen(msg1) +1);
+	printf("List command called\n");
+	char tmp_cur[2000];
+
+	int j;
+	for (j = 0; j<NUM_OF_USERS; j++) {
+		if(authorized_users[j].usrFD == fd) {
+			strcpy(tmp_cur, authorized_users[j].current_directory);
+			break;
+		}
+
+	}
+	if (strcmp(tmp_cur,"")==0) {
+		char msg5[] = "Authenticate yourself please\n";
+		printf("%s",msg5);
+		write(fd, msg5, strlen(msg5) +1);
+	}
+	else{
+		printf("current path%s\n", tmp_cur);
+
+
+		// char tmp_cur[2000];
+		// strcpy(tmp_cur, current_directory);
+
+		printf("PATH PARAMS %s\n",path );
+		if(strcmp(path,"")) {
+			if(change_directory(tmp_cur, path) != 0) {
+				
+				char msg2[] = "Error, directory does not exist!\n";
+				printf("%s",msg2);
+				write(fd, msg2, strlen(msg2) +1);
+				return -1;
+			}
+		}
+
+
+
+		DIR *directory_path;
+		struct dirent *file_pointer;     
+		directory_path = opendir (tmp_cur);
+
+		char files[2000];
+		memset(files,0,sizeof(files));
+
+
+		if (directory_path != NULL){
+			while (file_pointer = readdir (directory_path)){
+			  	strcat(files,file_pointer->d_name);
+				strcmp(tmp_cur,"\n");
+			}
+			(void) closedir (directory_path);
+			
+		}
+		else{
+			char msg5[] = "Couldn't open the directory\n";
+			printf("%s",msg5);
+			write(fd, msg5, strlen(msg5) +1);
+			// perror ("Couldn't open the directory\n");
+			return -1;
+		}
+
+		write(fd, files, strlen(files) +1);
+	}
+}
+
