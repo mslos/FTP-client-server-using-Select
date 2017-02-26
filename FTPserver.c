@@ -210,10 +210,27 @@ int main (int argc, char ** argv) {
 							// user_command(authorized_users, params, fd);
 						}
 						else if (strcmp(command, "CD") == 0) {
+							char tmp_cur[2000];
+							int j;
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if(authorized_users[j].usrFD == fd) {
+									strcpy(tmp_cur, authorized_users[j].current_directory);
+									break;
+								}
+
+							}
+
+							// User is not authenticated
+							if (strcmp(tmp_cur,"")==0) {
+								char msg5[] = "Authenticate yourself please\n";
+								printf("%s",msg5);
+								write(fd, msg5, strlen(msg5) +1);
+							}
+							change_directory(tmp_cur, params);
 							// change_directory(current_directory, params);
 							// user_command(authorized_users, params, fd);
 						}
-						
+
 						else if(strcmp(command, "GET")==0){
 							int j;
 							char msg1[] = "File download request received.\n";
@@ -521,6 +538,7 @@ int list_server_files(user * authorized_users, char * path, int fd){
 	printf("List command called\n");
 	char tmp_cur[2000];
 
+	// Check if user is authenticated
 	int j;
 	for (j = 0; j<NUM_OF_USERS; j++) {
 		if(authorized_users[j].usrFD == fd) {
@@ -529,6 +547,8 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		}
 
 	}
+
+	// User is not authenticated
 	if (strcmp(tmp_cur,"")==0) {
 		char msg5[] = "Authenticate yourself please\n";
 		printf("%s",msg5);
@@ -537,11 +557,6 @@ int list_server_files(user * authorized_users, char * path, int fd){
 	else{
 		printf("current path%s\n", tmp_cur);
 
-
-		// char tmp_cur[2000];
-		// strcpy(tmp_cur, current_directory);
-
-		printf("PATH PARAMS %s\n",path );
 		if(strcmp(path,"")) {
 			if(change_directory(tmp_cur, path) != 0) {
 				
@@ -551,8 +566,6 @@ int list_server_files(user * authorized_users, char * path, int fd){
 				return -1;
 			}
 		}
-
-
 
 		DIR *directory_path;
 		struct dirent *file_pointer;     
@@ -565,7 +578,7 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		if (directory_path != NULL){
 			while (file_pointer = readdir (directory_path)){
 			  	strcat(files,file_pointer->d_name);
-				strcmp(tmp_cur,"\n");
+				strcat(files,"\n");
 			}
 			(void) closedir (directory_path);
 			
