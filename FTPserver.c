@@ -31,9 +31,6 @@ void set_up_authorized_list(user * usr);
 int open_socket(struct sockaddr_in * myaddr, int *port, char * addr, int * sock);
 
 int main (int argc, char ** argv) {
-	for (int i = 0; i<argc; i++) {
-		printf("Argument %d is %s\n", i, argv[i]);
-	}
 
 	 // TCP protocol, same as opening a file
 	int port, listener_sock, file_port, file_transfer_sock, len, client_fd;
@@ -158,6 +155,8 @@ int main (int argc, char ** argv) {
 							write(fd, msg1, strlen(msg1) +1);
 							put_command(&file_transfer_sock, &first_connection, &file_transfer_fds, &file_fd_range);
 							printf("returned to while loop\n");
+							memset(command,0,sizeof(command));
+							memset(params,0,sizeof(params));
 						}
 						else {
 						  	printf("An invalid FTP command.\n");
@@ -177,7 +176,7 @@ int main (int argc, char ** argv) {
 			// Select for file transfers
 			temp_file_fds = file_transfer_fds;
 			if( select(file_fd_range+1, &temp_file_fds, NULL, NULL, NULL) == -1) {
-				perror("Select() failed");
+				perror("Select() failed\n");
 			}
 
 			// int fd, new_connection;
@@ -189,7 +188,7 @@ int main (int argc, char ** argv) {
 
 					// Check for new connections
 					if (fd==file_transfer_sock){
-						printf("file_transfer_sock");
+						printf("file_transfer_sock\n");
 						// accept_connection(new_connection, listener_sock, client_addr, master_fds, connection_fd_range,len);			
 						len = sizeof(file_transfer_addr);
 						// Accept new connection
@@ -206,13 +205,15 @@ int main (int argc, char ** argv) {
 					}
 					// Event not on listener
 					else {
-						memset(buffer,0,BUFFER_SIZE);
-						//I think we shoud read here, need to handshake to anticipate number of bytes in the file
+						//memset(buffer,0,BUFFER_SIZE);
+						printf("in else\n");
+						break;
+						// I think we shoud read here, need to handshake to anticipate number of bytes in the file
 						// open file descriptor (create if not exist), and write into the file
 						int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
 
 						if( num_of_bytes < 0)
-							perror("Error reading incoming stream");
+							perror("Error reading incoming stream\n");
 						else if (num_of_bytes == 0) {
 							printf("Socket %d closed\n",fd);
 							FD_CLR(fd, &master_fds);
@@ -224,6 +225,7 @@ int main (int argc, char ** argv) {
 						
 
 					}
+					printf("After else statement\n");
 
 				}
 			}

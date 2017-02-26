@@ -23,10 +23,6 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 
 int main (int argc, char ** argv) {
 
-	// for (int i = 0; i<argc; i++) {
-	// 	printf("Argument %d is %s\n", i, argv[i]);
-	// }
-	
 	int port, sock_fd, len, client_fd, file_transfer_fd, file_port;
 	char * ip_addr;
 	struct sockaddr_in server_addr, file_transfer_addr;
@@ -81,7 +77,7 @@ int main (int argc, char ** argv) {
 		else if (strcmp(command, "PUT") == 0) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 			put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
-			
+			// memset(command,0,sizeof(command));
 		} 
 
 		// List Files
@@ -140,8 +136,10 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
 		perror("Writing failed\n");
 	memset(buffer,0,BUFFER_SIZE);
-	if ( read(sock_fd, buffer, 40) < 0 )
+	if ( read(sock_fd, buffer, 40) < 0 ){
 		perror("Could not read from socket.\n");
+		close(sock_fd);
+	}
 	printf("%s",buffer);
 }
 
@@ -150,26 +148,41 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 void put_file(char * filename, struct sockaddr_in * server_addr, 
 	int * port, char * ip_addr, int * sock_fd){
 
-	// Open new TCP connection
-	struct stat st;
+	
+	struct stat st; // Information aobut the file
 	int src = open(filename, O_RDONLY);
-	*port = 7000;
-	openTCP(server_addr, port, ip_addr, sock_fd);
+	if( src < 0) {
+		printf("Error opening file\n");
+		return;
+	} // Open the file
+	else{
+		printf("Opened file successfully\n");
+		*port = 7000; 
 
-	//does this return the right size?
-	fstat(src, &st);
+		// Open a new TCP connection
+		openTCP(server_addr, port, ip_addr, sock_fd);
 
-	//must send server information about file size
+		// TODO: does this return the right size?
+		fstat(src, &st);
+		int bytes_sent;
+		int total_bytes_sent = 0;
 
-	//must confirm that we sent complete file (sendfile returns bytes transferred)
-	sendfile(src,*sock_fd,NULL,st.st_size);
+		//must send server information about file size
+		// read until program 
+		// if sock closed, return 0
+		//must confirm that we sent complete file (sendfile returns bytes transferred)
+		bytes_sent = sendfile(src,*sock_fd,NULL,st.st_size);
+		if(bytes_sent < 0) {
+			printf("Error, send file failed.\n");
+		}
+		else{
+			total_bytes_sent += bytes_sent;
+		}
 
-	close(*sock_fd);
-	close(src);
 
-	//write the file
-	//TODO
-	// close(file);
+		close(*sock_fd);
+		close(src);
+	}
 }
 
 
