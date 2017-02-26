@@ -83,6 +83,13 @@ int main (int argc, char ** argv) {
 			// memset(command,0,sizeof(command));
 		} 
 
+		// Download file to server
+		else if (strcmp(command, "GET") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+			get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+			// memset(command,0,sizeof(command));
+		} 
+
 		// List Files
 		else if (strcmp(command, "!LS") == 0) {
 			list_client_files(current_directory, params);
@@ -180,12 +187,43 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 		if(bytes_sent < 0) {
 			printf("Error, send file failed.\n");
 		}
+		else if (bytes_sent < st.st_size) {
+			printf("Warning: Did not PUT all bytes of the file.\n");
+		}
 
 		close(*sock_fd);
 		close(src);
 	}
 }
 
+void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr, 
+	int * port, char * ip_addr, int * sock_fd) {
+	char path[2000];
+	strcpy(path,cur_dir);
+	strcat(path,"/");
+	strcat(path,filename);
+	int num_of_bytes = -1;
+	char buffer[BUFFER_SIZE];
+
+	// Open a new TCP connection
+	openTCP(server_addr, port, ip_addr, sock_fd);
+
+	FILE * fp;
+	fp = fopen (path,"a");
+	if (fp==NULL) {
+	    perror("Could not open file to write into");
+	}
+	while(num_of_bytes != 0) {
+		num_of_bytes = read(*sock_fd, buffer, BUFFER_SIZE);
+		if (num_of_bytes < 0) {
+			perror("Problem reading file from the server.");
+			break;
+		}
+		fputs(buffer,fp);
+	}
+	fclose(fp);
+	close(*sock_fd);
+}
 
 
 int list_client_files(char * current_directory, char * path){

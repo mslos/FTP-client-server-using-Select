@@ -9,6 +9,9 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <sys/sendfile.h>
 
 
 #define BUFFER_SIZE 500
@@ -144,6 +147,7 @@ int main (int argc, char ** argv) {
 					else if (num_of_bytes == 0) {
 						printf("Socket %d closed\n",fd);
 						FD_CLR(fd, &master_fds);
+						close(fd);
 					}
 					else {
 						char command[100]; 
@@ -176,7 +180,6 @@ int main (int argc, char ** argv) {
 									{
 										perror("Cannot create file");
 									}
-									fputs("gdfggdfg",authorized_users[j].incoming_file);
 									memset(command,0,sizeof(command));
 									memset(params,0,sizeof(params));
 									break;
@@ -184,6 +187,32 @@ int main (int argc, char ** argv) {
 							}
 							if (j == NUM_OF_USERS) {
 								char msg5[] = "File upload request: Authenticate first!\n";
+								printf("%s",msg5);
+								// write(fd, msg5, strlen(msg5) +1);
+							}
+						}
+						else if(strcmp(command, "GET")==0){
+							int j;
+							char msg1[] = "File download request received.\n";
+							write(fd, msg1, strlen(msg1) +1);
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
+									char path [MAX_PATH_SIZE];
+									memset(path,0,sizeof(path));
+									strcat(path,authorized_users[j].current_directory);
+									strcat(path,"/");
+									strcat(path,params);
+
+									get_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
+										&file_fd_range, &file_transfer_addr, path);
+									printf("returned from get_command into main\n");
+									memset(command,0,sizeof(command));
+									memset(params,0,sizeof(params));
+									break;
+								}
+							}
+							if (j == NUM_OF_USERS) {
+								char msg5[] = "File download request: Authenticate first!\n";
 								printf("%s",msg5);
 								// write(fd, msg5, strlen(msg5) +1);
 							}
@@ -236,6 +265,7 @@ int main (int argc, char ** argv) {
 						else if (num_of_bytes == 0) {
 							printf("Socket %d closed\n",fd);
 							FD_CLR(fd, &file_transfer_fds);
+							close(fd);
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].transFD == fd) {
 									printf("Closing the file transfer\n");
@@ -401,11 +431,12 @@ void put_command(int * file_transfer_sock, int * first_connection,
 			printf("First connection\n");
 			*first_connection = 0;
 		}
-	}
-	// Add listener into fd set for select
-	FD_SET(*file_transfer_sock, file_transfer_fds);
+			// Add listener into fd set for select
+		FD_SET(*file_transfer_sock, file_transfer_fds);
 
-	*file_fd_range = *file_transfer_sock;
+		*file_fd_range = *file_transfer_sock;
+
+	}
 
 	if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
 		perror("Server cannot accept file transfer connection");
@@ -421,4 +452,56 @@ void put_command(int * file_transfer_sock, int * first_connection,
 		}
 	}
 
+}
+
+void get_command(int * file_transfer_sock, int * first_connection, 
+	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, char * path) {
+
+	struct stat st; // Information aobut the file
+	int new_connection, len;
+	len = sizeof(file_transfer_addr);
+	int src = open(path, O_RDONLY);
+	fstat(src, &st);
+	printf("Size of file is %d\n",st.st_size);
+	int bytes_sent;
+
+	if(*first_connection){
+			printf("file connection starting\n");
+			if ( listen(*file_transfer_sock,MAX_NUM_OF_CLIENTS) < 0)
+				perror("Error in listening on file transfer socket\n");
+			else{
+				printf("First connection\n");
+				*first_connection = 0;
+			}
+					// Add listener into fd set for select
+		FD_SET(*file_transfer_sock, file_transfer_fds);
+
+		*file_fd_range = *file_transfer_sock;
+	}
+	
+		if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
+		perror("Server cannot accept file transfer connection");
+	} 
+	else {
+
+		if( src < 0) {
+			printf("Error opening file\n");
+			return;
+		} // Open the file
+		else {
+			printf("Opened file successfully\n");
+			bytes_sent = sendfile(new_connection,src,NULL,st.st_size);
+
+			if(bytes_sent <= 0) {
+				printf("Error, send file failed.\n");
+			}
+			else if (bytes_sent < st.st_size) {
+				printf("Warning: Did not PUT all bytes of the file.\n");
+			}
+
+		close(new_connection);
+		close(src);
+		}
+	}
+	printf("returned to while loop\n");
 }
