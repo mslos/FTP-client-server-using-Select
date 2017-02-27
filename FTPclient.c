@@ -105,6 +105,21 @@ int main (int argc, char ** argv) {
 			change_directory(current_directory, params);
 		} 
 
+		// Server List Files
+		else if (strcmp(command, "LS") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+		} 
+
+		// Server change directory
+		else if (strcmp(command, "CD") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+		} 
+
+		// Server path of working directory
+		else if (strcmp(command, "PWD") == 0) {
+			parse_arg_to_buffer(command, params, sock_fd, buffer);
+		} 
+
 		// Exit
 		// TODO: Quit FTP connection?
 		else if (strcmp(command, "QUIT") == 0) {
