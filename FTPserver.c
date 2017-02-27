@@ -22,10 +22,10 @@
 
 
 #define BUFFER_SIZE 500
-#define MAX_NUM_OF_CLIENTS 5
+#define MAX_NUM_OF_CLIENTS 5 //if changed need to add names for new clients
 #define MAX_NAME_SIZE 10
 #define MAX_PASS_SIZE 10
-#define NUM_OF_USERS 3
+#define NUM_OF_USERS 5
 #define FILE_TRANSFER_PORT 7000
 #define MAX_PATH_SIZE 500
 
@@ -383,12 +383,14 @@ void openTCPport(struct sockaddr_in * myaddr, int *port, char * ip_addr, int * s
 	}
 }
 
+//Sets up the list of permitted users (they still need to authorize)
 void set_up_authorized_list(user * usr) {
 	for (int i = 0; i < NUM_OF_USERS; i++) {
 		usr[i].name = (char *) malloc(MAX_NAME_SIZE);
 		usr[i].pass = (char *) malloc(MAX_PASS_SIZE);
-		usr[i].current_directory = malloc(MAX_PATH_SIZE);
-		strcpy(usr[i].current_directory, "/home/cs217/Desktop");
+		usr[i].current_directory = (char *) malloc(MAX_PATH_SIZE);
+		// strcpy(usr[i].current_directory, "/home/");
+		getcwd(usr[i].current_directory, MAX_PATH_SIZE);
 		usr[i].auth = 0;
 		usr[i].usrFD = -1;
 	}
@@ -399,7 +401,10 @@ void set_up_authorized_list(user * usr) {
 	strcpy(usr[1].pass, "qwer");
 	strcpy(usr[2].name, "Martin");
 	strcpy(usr[2].pass, "iluvnet");
-	printf("Init auth usesr, test user 1 is %s\n", (usr[0].name) );
+	strcpy(usr[3].name, "Yasir");
+	strcpy(usr[3].pass, "ethernet");
+	strcpy(usr[4].name, "Stefan");
+	strcpy(usr[4].pass, "~!:?");
 }
 
 void parse_command(char *command, char * params, char * buffer, int fd){

@@ -10,6 +10,8 @@ Username and passowrds:
 Nabil        1234
 Brooke       qwer
 Martin       iluvnet
+Yasir		 ethernet
+Stefan	     ~!:?
 '''
 Note: Same username should not connect from two clients simultaneously.
 
@@ -42,6 +44,7 @@ Authenticated users can GET files from the server. Unlike PUT, the implementatio
 
 NOTE on PUT/GET: Correctness of connection and security currently relies on temporal exlusion of multiple clients. Because of the two-phase handshake, no two clients can enter the authentication loop at the same time. Therefore, we can tell with reasonable certainty who a user is. We understand that a *security* problem may arise if a malicious client tries to constantly poll the port for an opening. Hashing the control fd, and saving it as cookies would address this edge case.
 
+We fixed the issue with gets.
 
 
 #To view review comments use google spreadsheet.
