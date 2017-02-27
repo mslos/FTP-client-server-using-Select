@@ -37,7 +37,7 @@ int main (int argc, char ** argv) {
 	openTCP(&server_addr, &port, ip_addr, &sock_fd);
 
 
-
+	file_port = FILE_TRANSFER_PORT;
 
 	// open_socket(&server_addr, &port, ip_addr, &sock_fd);
 
@@ -194,8 +194,6 @@ void put_file(char * filename, struct sockaddr_in * server_addr, int * port, cha
 	
 
 	printf("Opened file successfully\n");
-	*port = FILE_TRANSFER_PORT; 
-
 	// Open a new TCP connection
 	openTCP(server_addr, port, ip_addr, sock_fd);
 
@@ -232,6 +230,7 @@ void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr,
 	memset(buffer,0,BUFFER_SIZE);
 	// Open a new TCP connection
 	openTCP(server_addr, port, ip_addr, sock_fd);
+	write(*sock_fd,"Hello there!", 20);
 
 	FILE * fp;
 	fp = fopen (path,"a");

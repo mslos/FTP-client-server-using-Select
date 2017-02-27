@@ -626,13 +626,15 @@ void get_command(int * file_transfer_sock, int * first_connection,
 		FD_SET(*file_transfer_sock, file_transfer_fds);
 
 		*file_fd_range = *file_transfer_sock;
+
 	}
 	
 	if((new_connection = accept(*file_transfer_sock,( struct sockaddr * restrict) file_transfer_addr,&len))<0){
 		perror("Server cannot accept file transfer connection");
 	} 
 	else {
-
+		char buf[20];
+		read(*file_transfer_sock, buf, 20);
 		printf("Opened file successfully\n");
 		bytes_sent = sendfile(new_connection,src,NULL,st.st_size);
 
