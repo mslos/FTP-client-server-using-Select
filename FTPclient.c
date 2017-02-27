@@ -80,7 +80,6 @@ int main (int argc, char ** argv) {
 					put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, src);
 				}
 			}
-			// memset(command,0,sizeof(command));
 		} 
 
 		// Download file to server
@@ -90,8 +89,6 @@ int main (int argc, char ** argv) {
 			if (strcmp(buffer,err) > 10 || strcmp(buffer,err) < -10) {
 				get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
 			}
-		
-			// memset(command,0,sizeof(command));
 		} 
 
 		// List Files
@@ -175,7 +172,6 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 			perror("Could not read from socket.\n");
 		}
 		printf("%s",buffer);
-		// memset(buffer,0,BUFFER_SIZE);
 	}
 }
 
@@ -284,7 +280,7 @@ int change_directory(char * current_directory, char * new_directory){
 	}
 	else
 		strcat(strcat(strcpy(new_path,current_directory),"/"),new_directory);
-		// printf("Trying to resolve %s\n", new_path);
+		
 	DIR* dir = opendir(new_path);
 
 	if (dir){
@@ -307,9 +303,8 @@ int change_directory(char * current_directory, char * new_directory){
 
 void openTCP(struct sockaddr_in * server_addr, 
 	int * port, char * ip_addr, int * sock_fd){
-	// printf("Entered openTCP.");
+
 	open_socket(server_addr, port, ip_addr, sock_fd);
-	// printf("Seems like connection went through.");
 
 	int ret = connect(*sock_fd,(const struct sockaddr *) server_addr, sizeof(*server_addr));
 	if (ret < 0) {
