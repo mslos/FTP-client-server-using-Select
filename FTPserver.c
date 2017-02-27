@@ -196,39 +196,70 @@ int main (int argc, char ** argv) {
 							if (j == NUM_OF_USERS) {
 								char msg5[] = "File upload request: Authenticate first!\n";
 								printf("%s",msg5);
-								// write(fd, msg5, strlen(msg5) +1);
 							}
 						}
 
 
 						else if (strcmp(command, "LS") == 0) {
 							list_server_files(authorized_users, params, fd);
-
-
-							// list_server_files(current_directory, params);
-							// change_directory(current_directory, params);
-							// user_command(authorized_users, params, fd);
 						}
 						else if (strcmp(command, "CD") == 0) {
 							char tmp_cur[2000];
+							memset(tmp_cur,0,sizeof(tmp_cur));
+							strcpy(tmp_cur,"");
 							int j;
 							for (j = 0; j<NUM_OF_USERS; j++) {
-								if(authorized_users[j].usrFD == fd) {
+								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
 									strcpy(tmp_cur, authorized_users[j].current_directory);
 									break;
 								}
 
 							}
 
+
 							// User is not authenticated
 							if (strcmp(tmp_cur,"")==0) {
 								char msg5[] = "Authenticate yourself please\n";
 								printf("%s",msg5);
 								write(fd, msg5, strlen(msg5) +1);
+								break;
 							}
-							change_directory(tmp_cur, params);
-							// change_directory(current_directory, params);
-							// user_command(authorized_users, params, fd);
+							// 
+							else if(change_directory(tmp_cur, params)==0){
+								char msg6[] = "Directory changed to ";
+								strcat(msg6,params);
+								strcat(msg6, "\n");
+								printf("%s",msg6);
+								write(fd, msg6, strlen(msg6) +1);
+							}
+							else{
+								char msg6[] = "Change directory failed\n";
+								printf("%s",msg6);
+								write(fd, msg6, strlen(msg6) +1);
+
+							}
+						}
+
+						else if (strcmp(command, "PWD") == 0) {
+							int authenticated =0;
+							int j;
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
+									char msg5[1000];
+									strcpy(msg5,authorized_users[j].current_directory);
+									strcat(msg5,"\n");
+									printf("%s",msg5);
+									write(fd, msg5, strlen(msg5) +1);
+									authenticated = 1;
+									break;
+								}
+
+							}
+							if(!authenticated){
+								char msg5[] = "Authenticate yourself please\n";
+								printf("%s",msg5);
+								write(fd, msg5, strlen(msg5) +1);
+							}
 						}
 
 						else if(strcmp(command, "GET")==0){
@@ -269,8 +300,7 @@ int main (int argc, char ** argv) {
 
 			}
 		}
-		/////////////////////////////////////
-		// printf("First connection is %d\n",first_connection);
+		
 		if(!first_connection){
 			printf("in file transfer loop\n");
 			// Select for file transfers
@@ -280,7 +310,6 @@ int main (int argc, char ** argv) {
 			}
 			tv.tv_usec = 200;
 
-			// int fd, new_connection;
 			// Iterate through all fds
 			for(fd=3; fd<= file_fd_range; fd++){
 
@@ -294,8 +323,7 @@ int main (int argc, char ** argv) {
 					else {
 						//memset(buffer,0,BUFFER_SIZE);
 						printf("in else\n");
-						// I think we shoud read here, need to handshake to anticipate number of bytes in the file
-						// open file descriptor (create if not exist), and write into the file
+
 						int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
 
 						printf("Buffer is %s\n", buffer);
@@ -330,7 +358,6 @@ int main (int argc, char ** argv) {
 				}
 			}
 		}
-		/////////////////////////////////
 	}
 }
 
@@ -381,8 +408,7 @@ void set_up_authorized_list(user * usr) {
 }
 
 void parse_command(char *command, char * params, char * buffer, int fd){
-	// char command[100]; 
-	// char params[100]; 
+
 	printf("Client fd %d, says: %s\n",fd,buffer);
 	sscanf(buffer,"%s %s", command , params);
 	printf("Command is %s, params are %s\n", command, params);
@@ -533,8 +559,7 @@ int change_directory(char * current_directory, char * new_directory){
 }
 
 int list_server_files(user * authorized_users, char * path, int fd){
-	// char msg1[] = "List command called\n";
-	// write(fd, msg1, strlen(msg1) +1);
+
 	printf("List command called\n");
 	char tmp_cur[2000];
 
@@ -555,7 +580,7 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		write(fd, msg5, strlen(msg5) +1);
 	}
 	else{
-		printf("current path%s\n", tmp_cur);
+		printf("Current path %s\n", tmp_cur);
 
 		if(strcmp(path,"")) {
 			if(change_directory(tmp_cur, path) != 0) {
