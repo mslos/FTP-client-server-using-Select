@@ -9,15 +9,16 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <stdlib.h>
-
+#include <arpa/inet.h>
 #include <dirent.h>
-
 #include <wordexp.h>
-
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/sendfile.h>
+#include <sys/stat.h> 
 
+
+#include "FTPserver.h"
 
 
 #define BUFFER_SIZE 500
@@ -27,21 +28,6 @@
 #define NUM_OF_USERS 3
 #define FILE_TRANSFER_PORT 7000
 #define MAX_PATH_SIZE 500
-
-typedef struct {
-	int usrFD;
-	char * name;
-	char * pass;
-	int auth;
-	char * current_directory;
-	int transFD;
-	FILE * incoming_file;
-} user;
-
-
-void set_up_authorized_list(user * usr);
-
-int open_socket(struct sockaddr_in * myaddr, int *port, char * addr, int * sock);
 
 int main (int argc, char ** argv) {
 
@@ -132,7 +118,7 @@ int main (int argc, char ** argv) {
 					// accept_connection(new_connection, listener_sock, client_addr, master_fds, connection_fd_range,len);			
 					len = sizeof(client_addr);
 					// Accept new connection
-					if((new_connection =accept(listener_sock,(const struct sockaddr *) &client_addr,&len))<0){
+					if((new_connection =accept(listener_sock,( struct sockaddr * restrict) &client_addr,&len))<0){
 						perror("Server cannot accept connection\n");
 					} else {
 						// Add to master set
@@ -263,8 +249,6 @@ int main (int argc, char ** argv) {
 
 						else if(strcmp(command, "GET")==0){
 							int j;
-							// char msg1[] = "File download request received.\n";
-							// write(fd, msg1, strlen(msg1) +1);
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
 									char path [MAX_PATH_SIZE];
@@ -272,7 +256,9 @@ int main (int argc, char ** argv) {
 									strcat(path,authorized_users[j].current_directory);
 									strcat(path,"/");
 									strcat(path,params);
-									int src = open(path, O_RDONLY);
+
+									int src = open(path, O_RDONLY); 
+									//opens file here for error checking, closes in function get_command()
 	
 									if( src < 0 || (strcmp(params,"") == 0)) {
 										char msg [] = "Error opening file / File not found\n";
@@ -375,14 +361,14 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 	*sock = socket(AF_INET, SOCK_STREAM,0);
 
 	if (*sock < 0) {
-      printf(stderr,"Error opening socket\n");
+      perror("Error opening socket\n");
    }
 
 	myaddr->sin_family = AF_INET;
 	myaddr->sin_port = htons(*port);
 	
 	if( inet_aton(addr, &(myaddr->sin_addr))==0 ) {
-		fprintf(stderr, "Error, cannot translate IP into binary\n");
+		perror("Error, cannot translate IP into binary\n");
 	}
 
 	return 0;
@@ -392,7 +378,7 @@ void openTCPport(struct sockaddr_in * myaddr, int *port, char * ip_addr, int * s
 	// Create filetransfer socket descriptor
 	open_socket(myaddr, port, ip_addr, sock);
 
-	if (bind(*sock, myaddr, sizeof(*myaddr)) < 0) {
+	if (bind(*sock, (const struct sockaddr *) myaddr, sizeof(*myaddr)) < 0) {
 	      perror("Could not bind socket");
 	}
 }
@@ -429,7 +415,7 @@ void user_command(user * authorized_users, char * params, int fd){
 	printf("USER command activated.\n");
 	for (int j = 0; j<NUM_OF_USERS; j++) {
 
-		printf("Username check: %d \n", (authorized_users[j].name));
+		printf("Username check: %s \n", (authorized_users[j].name));
 
 		if(strcmp(authorized_users[j].name, params) == 0) {
 			printf("User found in database.\n");
@@ -478,22 +464,6 @@ void pass_command(user * authorized_users, char * params, int fd){
 
 }
 
-void accept_connection(int new_connection, int * listener_sock, struct sockaddr_in * client_addr, 
-	fd_set master_fds, int connection_fd_range, int * len){
-	len = sizeof(client_addr);
-	// Accept new connection
-	if((new_connection =accept(listener_sock,(const struct sockaddr *) &client_addr,&len))<0){
-		perror("Server cannot accept connection\n");
-	} else {
-		// Add to master set
-		FD_SET(new_connection, &master_fds);
-		if (new_connection>connection_fd_range){
-			connection_fd_range=new_connection;
-			printf("New connection successfuly added into fd set\n");
-		}
-	}
-}
-
 void put_command(int * file_transfer_sock, int * first_connection, 
 	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, user * usr){
 	int new_connection, len;
@@ -514,7 +484,7 @@ void put_command(int * file_transfer_sock, int * first_connection,
 
 	}
 
-	if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
+	if((new_connection = accept(*file_transfer_sock,( struct sockaddr * restrict) file_transfer_addr,&len))<0){
 		perror("Server cannot accept file transfer connection");
 	} 
 	else {
@@ -548,9 +518,6 @@ int change_directory(char * current_directory, char * new_directory){
 	DIR* dir = opendir(new_path);
 
 	if (dir){
-	    // Directory exists.
-	    // TODO: Check if the buffer has space for new file name
-		// strcat(strcat(current_directory,"/"),new_directory);
 		realpath(new_path,current_directory);
 		printf("Changed directory to %s\n", new_directory);
 	    closedir(dir);
@@ -566,6 +533,7 @@ int change_directory(char * current_directory, char * new_directory){
 	    return 2;
 	}
 }
+
 
 int list_server_files(user * authorized_users, char * path, int fd){
 
@@ -643,7 +611,7 @@ void get_command(int * file_transfer_sock, int * first_connection,
 	len = sizeof(file_transfer_addr);
 
 	fstat(src, &st);
-	printf("Size of file is %d\n",st.st_size);
+	printf("Size of file is %d\n",(int)st.st_size);
 	int bytes_sent;
 
 	if(*first_connection){
@@ -660,7 +628,7 @@ void get_command(int * file_transfer_sock, int * first_connection,
 		*file_fd_range = *file_transfer_sock;
 	}
 	
-	if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
+	if((new_connection = accept(*file_transfer_sock,( struct sockaddr * restrict) file_transfer_addr,&len))<0){
 		perror("Server cannot accept file transfer connection");
 	} 
 	else {

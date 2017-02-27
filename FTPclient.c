@@ -1,7 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
 #include <string.h>
@@ -13,15 +12,14 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/sendfile.h>
+#include <stdio.h>
+#include <arpa/inet.h>
+
+
+#include "FTPclient.h"
 
 #define BUFFER_SIZE 500
 #define FILE_TRANSFER_PORT 7000
-
-
-
-int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock);
-
-void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buffer);
 
 
 int main (int argc, char ** argv) {
@@ -85,7 +83,7 @@ int main (int argc, char ** argv) {
 				parse_arg_to_buffer(command, params, sock_fd, buffer);
 				char err [] = "File upload request: Authenticate first!";
 				if (strcmp(buffer,err) > 10 || strcmp(buffer,err) < -10) {
-					put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+					put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, src);
 				}
 			}
 			// memset(command,0,sizeof(command));
@@ -96,7 +94,7 @@ int main (int argc, char ** argv) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
 			char err [] = "Error opening file / File not found";
 			if (strcmp(buffer,err) > 10 || strcmp(buffer,err) < -10) {
-				get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, sock_fd);
+				get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
 			}
 		
 			// memset(command,0,sizeof(command));
@@ -133,10 +131,10 @@ int main (int argc, char ** argv) {
 		} 
 
 		// Exit
-		// TODO: Quit FTP connection?
 		else if (strcmp(command, "QUIT") == 0) {
 			close(sock_fd);
 			printf("Goodbye. \n");
+			return 0;
 		}
 
 			// Command not found
@@ -189,8 +187,7 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 
 
 
-void put_file(char * filename, struct sockaddr_in * server_addr, 
-	int * port, char * ip_addr, int * sock_fd, int src){
+void put_file(char * filename, struct sockaddr_in * server_addr, int * port, char * ip_addr, int * sock_fd, int src){
 
 	
 	struct stat st; // Information aobut the file
@@ -202,9 +199,8 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 	// Open a new TCP connection
 	openTCP(server_addr, port, ip_addr, sock_fd);
 
-	// TODO: does this return the right size?
 	fstat(src, &st);
-	printf("Size of file is %d\n",st.st_size);
+	printf("Size of file is %d\n",(int)st.st_size);
 	int bytes_sent;
 	int total_bytes_sent = 0;
 
@@ -225,8 +221,7 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 	close(src);
 }
 
-void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr, 
-	int * port, char * ip_addr, int * sock_fd) {
+void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr, int * port, char * ip_addr, int * sock_fd) {
 	char path[2000];
 	strcpy(path,cur_dir);
 	strcat(path,"/");
@@ -300,9 +295,6 @@ int change_directory(char * current_directory, char * new_directory){
 	DIR* dir = opendir(new_path);
 
 	if (dir){
-	    // Directory exists.
-	    // TODO: Check if the buffer has space for new file name
-		// strcat(strcat(current_directory,"/"),new_directory);
 		realpath(new_path,current_directory);
 		printf("Changed directory to %s\n", new_directory);
 	    closedir(dir);
@@ -329,7 +321,7 @@ void openTCP(struct sockaddr_in * server_addr,
 	int ret = connect(*sock_fd,(const struct sockaddr *) server_addr, sizeof(*server_addr));
 	if (ret < 0) {
 		perror("Error happened while connecting in client\n");
-		return 1;
+		return;
 	}
 
 }
