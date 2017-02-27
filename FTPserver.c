@@ -108,7 +108,7 @@ int main (int argc, char ** argv) {
 	FD_ZERO(&temp_file_fds);
 
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_usec = 200;
 
 	while(1) {
 
@@ -278,7 +278,7 @@ int main (int argc, char ** argv) {
 			if( select(file_fd_range+1, &temp_file_fds, NULL, NULL, &tv) == -1) {
 				perror("Select() failed\n");
 			}
-			tv.tv_sec = 1;
+			tv.tv_usec = 200;
 
 			// int fd, new_connection;
 			// Iterate through all fds
