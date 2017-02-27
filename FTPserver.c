@@ -211,22 +211,39 @@ int main (int argc, char ** argv) {
 						}
 						else if (strcmp(command, "CD") == 0) {
 							char tmp_cur[2000];
+							memset(tmp_cur,0,sizeof(tmp_cur));
+							strcpy(tmp_cur,"");
 							int j;
 							for (j = 0; j<NUM_OF_USERS; j++) {
-								if(authorized_users[j].usrFD == fd) {
+								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
 									strcpy(tmp_cur, authorized_users[j].current_directory);
 									break;
 								}
 
 							}
 
+
 							// User is not authenticated
 							if (strcmp(tmp_cur,"")==0) {
 								char msg5[] = "Authenticate yourself please\n";
 								printf("%s",msg5);
 								write(fd, msg5, strlen(msg5) +1);
+								break;
 							}
-							change_directory(tmp_cur, params);
+							// 
+							else if(change_directory(tmp_cur, params)==0){
+								char msg6[] = "Directory changed to ";
+								strcat(msg6,params);
+								strcat(msg6, "\n");
+								printf("%s",msg6);
+								write(fd, msg6, strlen(msg6) +1);
+							}
+							else{
+								char msg6[] = "Change directory failed\n";
+								printf("%s",msg6);
+								write(fd, msg6, strlen(msg6) +1);
+
+							}
 							// change_directory(current_directory, params);
 							// user_command(authorized_users, params, fd);
 						}
