@@ -248,6 +248,28 @@ int main (int argc, char ** argv) {
 							// user_command(authorized_users, params, fd);
 						}
 
+						else if (strcmp(command, "PWD") == 0) {
+							int authenticated =0;
+							int j;
+							for (j = 0; j<NUM_OF_USERS; j++) {
+								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
+									char msg5[1000];
+									strcpy(msg5,authorized_users[j].current_directory);
+									strcat(msg5,"\n");
+									printf("%s",msg5);
+									write(fd, msg5, strlen(msg5) +1);
+									authenticated = 1;
+									break;
+								}
+
+							}
+							if(!authenticated){
+								char msg5[] = "Authenticate yourself please\n";
+								printf("%s",msg5);
+								write(fd, msg5, strlen(msg5) +1);
+							}
+						}
+
 						else if(strcmp(command, "GET")==0){
 							int j;
 							char msg1[] = "File download request received.\n";
@@ -572,7 +594,7 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		write(fd, msg5, strlen(msg5) +1);
 	}
 	else{
-		printf("current path%s\n", tmp_cur);
+		printf("Current path %s\n", tmp_cur);
 
 		if(strcmp(path,"")) {
 			if(change_directory(tmp_cur, path) != 0) {
