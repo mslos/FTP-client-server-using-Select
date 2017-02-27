@@ -172,10 +172,10 @@ int main (int argc, char ** argv) {
 
 						else if(strcmp(command, "PUT")==0){
 							int j;
-							char msg1[] = "File upload request received.\n";
-							write(fd, msg1, strlen(msg1) +1);
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
+									char msg1[] = "File upload request received.\n";
+									write(fd, msg1, strlen(msg1) +1);
 									put_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
 										&file_fd_range, &file_transfer_addr, &(authorized_users[j]));
 									printf("returned to while loop\n");
@@ -196,6 +196,7 @@ int main (int argc, char ** argv) {
 							if (j == NUM_OF_USERS) {
 								char msg5[] = "File upload request: Authenticate first!\n";
 								printf("%s",msg5);
+								write(fd, msg5, strlen(msg5) +1);
 							}
 						}
 
@@ -262,8 +263,8 @@ int main (int argc, char ** argv) {
 
 						else if(strcmp(command, "GET")==0){
 							int j;
-							char msg1[] = "File download request received.\n";
-							write(fd, msg1, strlen(msg1) +1);
+							// char msg1[] = "File download request received.\n";
+							// write(fd, msg1, strlen(msg1) +1);
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
 									char path [MAX_PATH_SIZE];
@@ -271,9 +272,19 @@ int main (int argc, char ** argv) {
 									strcat(path,authorized_users[j].current_directory);
 									strcat(path,"/");
 									strcat(path,params);
-
+									int src = open(path, O_RDONLY);
+	
+									if( src < 0 || (strcmp(params,"") == 0)) {
+										char msg [] = "Error opening file / File not found\n";
+										printf("%s",msg);
+										write(fd, msg, strlen(msg));
+										break;
+									} else {
+										char msg [] = "Success, file open.\n";
+										write(fd, msg, strlen(msg));
+									}
 									get_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
-										&file_fd_range, &file_transfer_addr, path, fd);
+										&file_fd_range, &file_transfer_addr, path, src);
 									printf("returned from get_command into main\n");
 									memset(command,0,sizeof(command));
 									memset(params,0,sizeof(params));
@@ -283,7 +294,7 @@ int main (int argc, char ** argv) {
 							if (j == NUM_OF_USERS) {
 								char msg5[] = "File download request: Authenticate first!\n";
 								printf("%s",msg5);
-								// write(fd, msg5, strlen(msg5) +1);
+								write(fd, msg5, strlen(msg5) +1);
 							}
 
 						}
@@ -625,23 +636,11 @@ int list_server_files(user * authorized_users, char * path, int fd){
 
 void get_command(int * file_transfer_sock, int * first_connection, 
 	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, 
-	char * path, int control_fd) {
+	char * path, int src) {
 
-	struct stat st; // Information aobut the file
+	struct stat st; // Information about the file
 	int new_connection, len;
 	len = sizeof(file_transfer_addr);
-	int src = open(path, O_RDONLY);
-	
-	if( src < 0) {
-		char msg [] = "Error opening file / File not found\n";
-		printf("%s",msg);
-		write(control_fd, msg, strlen(msg));
-		return;
-	} else {
-		char msg [] = "Success, file open.\n";
-		write(control_fd, msg, strlen(msg));
-	}
-
 
 	fstat(src, &st);
 	printf("Size of file is %d\n",st.st_size);

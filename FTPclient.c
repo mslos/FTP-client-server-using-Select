@@ -78,15 +78,27 @@ int main (int argc, char ** argv) {
 
 		// Upload file to server
 		else if (strcmp(command, "PUT") == 0) {
-			parse_arg_to_buffer(command, params, sock_fd, buffer);
-			put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+			int src = open(params, O_RDONLY);
+			if( src < 0) {
+				printf("Error opening file\n");
+			} else {
+				parse_arg_to_buffer(command, params, sock_fd, buffer);
+				char err [] = "File upload request: Authenticate first!";
+				if (strcmp(buffer,err) > 10 || strcmp(buffer,err) < -10) {
+					put_file(params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+				}
+			}
 			// memset(command,0,sizeof(command));
 		} 
 
 		// Download file to server
 		else if (strcmp(command, "GET") == 0) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
-			get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, sock_fd);
+			char err [] = "Error opening file / File not found";
+			if (strcmp(buffer,err) > 10 || strcmp(buffer,err) < -10) {
+				get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, sock_fd);
+			}
+		
 			// memset(command,0,sizeof(command));
 		} 
 
@@ -171,62 +183,56 @@ void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buff
 			perror("Could not read from socket.\n");
 		}
 		printf("%s",buffer);
-		memset(buffer,0,BUFFER_SIZE);
+		// memset(buffer,0,BUFFER_SIZE);
 	}
 }
 
 
 
 void put_file(char * filename, struct sockaddr_in * server_addr, 
-	int * port, char * ip_addr, int * sock_fd){
+	int * port, char * ip_addr, int * sock_fd, int src){
 
 	
 	struct stat st; // Information aobut the file
-	int src = open(filename, O_RDONLY);
-	if( src < 0) {
-		printf("Error opening file\n");
-		return;
-	} // Open the file
-	else {
-		printf("Opened file successfully\n");
-		*port = FILE_TRANSFER_PORT; 
+	
 
-		// Open a new TCP connection
-		openTCP(server_addr, port, ip_addr, sock_fd);
+	printf("Opened file successfully\n");
+	*port = FILE_TRANSFER_PORT; 
 
-		// TODO: does this return the right size?
-		fstat(src, &st);
-		printf("Size of file is %d\n",st.st_size);
-		int bytes_sent;
-		int total_bytes_sent = 0;
+	// Open a new TCP connection
+	openTCP(server_addr, port, ip_addr, sock_fd);
 
-		//must send server information about file size
-		// read until program 
-		// if sock closed, return 0
-		//must confirm that we sent complete file (sendfile returns bytes transferred)
-		bytes_sent = sendfile(*sock_fd,src,NULL,st.st_size);
+	// TODO: does this return the right size?
+	fstat(src, &st);
+	printf("Size of file is %d\n",st.st_size);
+	int bytes_sent;
+	int total_bytes_sent = 0;
 
-		if(bytes_sent < 0) {
-			printf("Error, send file failed.\n");
-		}
-		else if (bytes_sent < st.st_size) {
-			printf("Warning: Did not PUT all bytes of the file.\n");
-		}
+	//must send server information about file size
+	// read until program 
+	// if sock closed, return 0
+	//must confirm that we sent complete file (sendfile returns bytes transferred)
+	bytes_sent = sendfile(*sock_fd,src,NULL,st.st_size);
 
-		close(*sock_fd);
-		close(src);
+	if(bytes_sent < 0) {
+		printf("Error, send file failed.\n");
 	}
+	else if (bytes_sent < st.st_size) {
+		printf("Warning: Did not PUT all bytes of the file.\n");
+	}
+
+	close(*sock_fd);
+	close(src);
 }
 
 void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr, 
-	int * port, char * ip_addr, int * sock_fd, int control_fd) {
+	int * port, char * ip_addr, int * sock_fd) {
 	char path[2000];
 	strcpy(path,cur_dir);
 	strcat(path,"/");
 	strcat(path,filename);
 	int num_of_bytes = -1;
 	char buffer[BUFFER_SIZE];
-
 
 	memset(buffer,0,BUFFER_SIZE);
 	// Open a new TCP connection
