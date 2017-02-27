@@ -20,7 +20,9 @@
 
 #define BUFFER_SIZE 500
 #define FILE_TRANSFER_PORT 7000
-
+#define MAX_COMMAND_LEN 20
+#define MAX_PARAMETER_LEN 200
+#define MAX_INPUT_LEN 250
 
 int main (int argc, char ** argv) {
 
@@ -39,26 +41,18 @@ int main (int argc, char ** argv) {
 
 	file_port = FILE_TRANSFER_PORT;
 
-	// open_socket(&server_addr, &port, ip_addr, &sock_fd);
-
-	// int ret = connect(sock_fd,(const struct sockaddr *) &server_addr, sizeof(server_addr));
-
-	// if (ret < 0) {
-	// 	perror("Error happened while connecting in client\n");
-	// 	return 1;
-	// }
-
 	// Read in commands from client
-	char command[100]; 
-	char params[100]; 
-	char line[200];
+	char command[MAX_COMMAND_LEN]; 
+	char params[MAX_PARAMETER_LEN]; 
+	char line[MAX_INPUT_LEN];
 	// Initialize current directory
 	char current_directory[1000]; //TODO: is this too small
 	getcwd(current_directory, sizeof(current_directory));
 
 	while(1) {
 		printf("ftp> ");
-		gets(line);
+		// gets(line);
+		fgets(line, MAX_INPUT_LEN, stdin);
 		memset(command,0,sizeof(command));
 		memset(params,0,sizeof(params));
 		// Parse input on space
