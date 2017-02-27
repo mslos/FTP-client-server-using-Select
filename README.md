@@ -5,9 +5,9 @@ Running basic server and client from command line:
 ./obj/FTPserver 127.0.0.1 5000
 ./obj/FTPclient 127.0.0.1 5000
 ```
-Username and passowrds:
-'''
-Nabil        1234
+|Username:|Passowrds:|
+|---------|----------|
+|Nabil    |    1234|
 Brooke       qwer
 Martin       iluvnet
 Yasir		 ethernet
