@@ -1,0 +1,13 @@
+USER Martin
+PASS iluvnet
+LS
+CD ~
+CD /
+PWD
+CD ~/Desktop/
+PWD
+!PWD
+LS
+PUT lorem.txt
+LS
+QUIT
