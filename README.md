@@ -1,10 +1,10 @@
 #To run
 Running basic server and client from command line:
 
-'''
+```
 ./obj/FTPserver 127.0.0.1 5000
 ./obj/FTPclient 127.0.0.1 5000
-'''
+```
 Username and passowrds:
 '''
 Nabil        1234
@@ -37,10 +37,10 @@ If the user is authenticated, they can use the above commands in a similar way t
 These are local commands that do not require authentication.
 
 PUT
-Authenticated users can upload files to the server. The server only lets authenticated users connect. The server can handle muplitple simultaneous uploads by users via select(). 
+Authenticated users can upload files to the server. The server only lets authenticated users connect. The server can handle muplitple simultaneous uploads by users via select(). Our implementation appends into files for safety reasons.
 
 GET
-Authenticated users can GET files from the server. Unlike PUT, the implementation of GET is blocking, so that if the user downloads a very large file, the server will not work for other users.
+Authenticated users can GET files from the server. Unlike PUT, the implementation of GET is blocking, so that if the user downloads a very large file, the server will not work for other users. Our implementation appends into files for safety reasons.
 
 NOTE on PUT/GET: Correctness of connection and security currently relies on temporal exlusion of multiple clients. Because of the two-phase handshake, no two clients can enter the authentication loop at the same time. Therefore, we can tell with reasonable certainty who a user is. We understand that a *security* problem may arise if a malicious client tries to constantly poll the port for an opening. Hashing the control fd, and saving it as cookies would address this edge case.
 

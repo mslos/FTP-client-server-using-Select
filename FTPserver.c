@@ -137,6 +137,13 @@ int main (int argc, char ** argv) {
 					if( num_of_bytes < 0)
 						perror("Error reading incoming stream\n");
 					else if (num_of_bytes == 0) {
+						int j;
+						for (j = 0; j<NUM_OF_USERS; j++) {
+							if(authorized_users[j].usrFD == fd) {
+								authorized_users[j].auth = 0;
+								authorized_users[j].usrFD = -1;
+							}
+						}
 						printf("Socket %d closed\n",fd);
 						FD_CLR(fd, &master_fds);
 						close(fd);
@@ -321,7 +328,7 @@ int main (int argc, char ** argv) {
 
 						int num_of_bytes = read(fd, buffer, BUFFER_SIZE);
 
-						printf("Buffer is %s\n", buffer);
+						// printf("Buffer is %s\n", buffer);
 						int j;
 
 						if( num_of_bytes < 0)
@@ -334,6 +341,7 @@ int main (int argc, char ** argv) {
 								if(authorized_users[j].transFD == fd) {
 									printf("Closing the file transfer\n");
 									fclose(authorized_users[j].incoming_file);
+									break;
 								}
 							}						
 						}
@@ -640,7 +648,7 @@ void get_command(int * file_transfer_sock, int * first_connection,
 	else {
 		char buf[20];
 		read(*file_transfer_sock, buf, 20);
-		printf("Opened file successfully\n");
+		printf("About to send the file\n");
 		bytes_sent = sendfile(new_connection,src,NULL,st.st_size);
 
 		if(bytes_sent <= 0) {
