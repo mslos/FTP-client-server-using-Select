@@ -86,7 +86,7 @@ int main (int argc, char ** argv) {
 		// Download file to server
 		else if (strcmp(command, "GET") == 0) {
 			parse_arg_to_buffer(command, params, sock_fd, buffer);
-			get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd);
+			get_file(current_directory, params, &file_transfer_addr, &file_port, ip_addr, &file_transfer_fd, sock_fd);
 			// memset(command,0,sizeof(command));
 		} 
 
@@ -153,19 +153,26 @@ int open_socket(struct sockaddr_in * myaddr, int * port, char * addr, int * sock
 }
 
 
-void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buffer){
+void parse_arg_to_buffer(char * command, char * params, int sock_fd, char * buffer) {
 	memset(buffer,0,BUFFER_SIZE);
+	int bytes_read = BUFFER_SIZE;
 	strcpy(buffer, command);
 	strcat(buffer, " ");
 	strcat(buffer, params);
 	if( write(sock_fd, buffer, strlen(buffer)+1) < 0)
 		perror("Writing failed\n");
+
 	memset(buffer,0,BUFFER_SIZE);
-	if ( read(sock_fd, buffer, 40) < 0 ){
-		perror("Could not read from socket.\n");
-		close(sock_fd);
+
+	while( (bytes_read == BUFFER_SIZE) ) {
+		bytes_read = read(sock_fd, buffer, BUFFER_SIZE);
+		if ( bytes_read < 0 ) {
+			close(sock_fd);
+			perror("Could not read from socket.\n");
+		}
+		printf("%s",buffer);
+		memset(buffer,0,BUFFER_SIZE);
 	}
-	printf("%s",buffer);
 }
 
 
@@ -212,7 +219,7 @@ void put_file(char * filename, struct sockaddr_in * server_addr,
 }
 
 void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr, 
-	int * port, char * ip_addr, int * sock_fd) {
+	int * port, char * ip_addr, int * sock_fd, int control_fd) {
 	char path[2000];
 	strcpy(path,cur_dir);
 	strcat(path,"/");
@@ -220,6 +227,8 @@ void get_file(char * cur_dir, char * filename, struct sockaddr_in * server_addr,
 	int num_of_bytes = -1;
 	char buffer[BUFFER_SIZE];
 
+
+	memset(buffer,0,BUFFER_SIZE);
 	// Open a new TCP connection
 	openTCP(server_addr, port, ip_addr, sock_fd);
 

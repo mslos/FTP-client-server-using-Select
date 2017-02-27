@@ -204,36 +204,34 @@ int main (int argc, char ** argv) {
 							list_server_files(authorized_users, params, fd);
 						}
 						else if (strcmp(command, "CD") == 0) {
-							char tmp_cur[2000];
+							char tmp_cur[MAX_PATH_SIZE];
 							memset(tmp_cur,0,sizeof(tmp_cur));
 							strcpy(tmp_cur,"");
 							int j;
 							for (j = 0; j<NUM_OF_USERS; j++) {
 								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
-									strcpy(tmp_cur, authorized_users[j].current_directory);
+									// strcpy(tmp_cur, authorized_users[j].current_directory);
 									break;
 								}
-
 							}
-
-
 							// User is not authenticated
-							if (strcmp(tmp_cur,"")==0) {
+							// if (strcmp(tmp_cur,"")==0) {
+							if (j==NUM_OF_USERS) {
 								char msg5[] = "Authenticate yourself please\n";
 								printf("%s",msg5);
 								write(fd, msg5, strlen(msg5) +1);
 								break;
 							}
 							// 
-							else if(change_directory(tmp_cur, params)==0){
+							else if(change_directory(authorized_users[j].current_directory, params)==0){
 								char msg6[] = "Directory changed to ";
-								strcat(msg6,params);
+								strcat(msg6,authorized_users[j].current_directory);
 								strcat(msg6, "\n");
 								printf("%s",msg6);
 								write(fd, msg6, strlen(msg6) +1);
 							}
 							else{
-								char msg6[] = "Change directory failed\n";
+								char msg6[] = "Change directory failed, wrong directory\n";
 								printf("%s",msg6);
 								write(fd, msg6, strlen(msg6) +1);
 
@@ -244,8 +242,8 @@ int main (int argc, char ** argv) {
 							int authenticated =0;
 							int j;
 							for (j = 0; j<NUM_OF_USERS; j++) {
-								if((authorized_users[j].usrFD == fd)&& authorized_users[j].auth == 1) {
-									char msg5[1000];
+								if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
+									char msg5[MAX_PATH_SIZE];
 									strcpy(msg5,authorized_users[j].current_directory);
 									strcat(msg5,"\n");
 									printf("%s",msg5);
@@ -275,7 +273,7 @@ int main (int argc, char ** argv) {
 									strcat(path,params);
 
 									get_command(&file_transfer_sock, &first_connection, &file_transfer_fds, 
-										&file_fd_range, &file_transfer_addr, path);
+										&file_fd_range, &file_transfer_addr, path, fd);
 									printf("returned from get_command into main\n");
 									memset(command,0,sizeof(command));
 									memset(params,0,sizeof(params));
@@ -523,7 +521,7 @@ void put_command(int * file_transfer_sock, int * first_connection,
 
 
 int change_directory(char * current_directory, char * new_directory){
-	char new_path[2000]; 
+	char new_path[MAX_PATH_SIZE]; 
 	if(new_directory[0] == '/') {
 		strcpy(new_path,new_directory);
 	}
@@ -561,12 +559,14 @@ int change_directory(char * current_directory, char * new_directory){
 int list_server_files(user * authorized_users, char * path, int fd){
 
 	printf("List command called\n");
-	char tmp_cur[2000];
+	char tmp_cur[MAX_PATH_SIZE];
+	memset(tmp_cur,0,sizeof(tmp_cur));
+	strcpy(tmp_cur,"");
 
 	// Check if user is authenticated
 	int j;
 	for (j = 0; j<NUM_OF_USERS; j++) {
-		if(authorized_users[j].usrFD == fd) {
+		if(authorized_users[j].usrFD == fd && authorized_users[j].auth == 1) {
 			strcpy(tmp_cur, authorized_users[j].current_directory);
 			break;
 		}
@@ -578,6 +578,7 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		char msg5[] = "Authenticate yourself please\n";
 		printf("%s",msg5);
 		write(fd, msg5, strlen(msg5) +1);
+		return 0;
 	}
 	else{
 		printf("Current path %s\n", tmp_cur);
@@ -602,11 +603,11 @@ int list_server_files(user * authorized_users, char * path, int fd){
 
 		if (directory_path != NULL){
 			while (file_pointer = readdir (directory_path)){
+				if(strlen(files) + strlen(file_pointer->d_name) > 2000) break;
 			  	strcat(files,file_pointer->d_name);
 				strcat(files,"\n");
 			}
 			(void) closedir (directory_path);
-			
 		}
 		else{
 			char msg5[] = "Couldn't open the directory\n";
@@ -617,17 +618,31 @@ int list_server_files(user * authorized_users, char * path, int fd){
 		}
 
 		write(fd, files, strlen(files) +1);
+		return 0;
 	}
 }
 
 
 void get_command(int * file_transfer_sock, int * first_connection, 
-	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, char * path) {
+	fd_set * file_transfer_fds, int * file_fd_range, struct sockaddr_in * file_transfer_addr, 
+	char * path, int control_fd) {
 
 	struct stat st; // Information aobut the file
 	int new_connection, len;
 	len = sizeof(file_transfer_addr);
 	int src = open(path, O_RDONLY);
+	
+	if( src < 0) {
+		char msg [] = "Error opening file / File not found\n";
+		printf("%s",msg);
+		write(control_fd, msg, strlen(msg));
+		return;
+	} else {
+		char msg [] = "Success, file open.\n";
+		write(control_fd, msg, strlen(msg));
+	}
+
+
 	fstat(src, &st);
 	printf("Size of file is %d\n",st.st_size);
 	int bytes_sent;
@@ -646,29 +661,24 @@ void get_command(int * file_transfer_sock, int * first_connection,
 		*file_fd_range = *file_transfer_sock;
 	}
 	
-		if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
+	if((new_connection = accept(*file_transfer_sock,(const struct sockaddr *) file_transfer_addr,&len))<0){
 		perror("Server cannot accept file transfer connection");
 	} 
 	else {
 
-		if( src < 0) {
-			printf("Error opening file\n");
-			return;
-		} // Open the file
-		else {
-			printf("Opened file successfully\n");
-			bytes_sent = sendfile(new_connection,src,NULL,st.st_size);
+		printf("Opened file successfully\n");
+		bytes_sent = sendfile(new_connection,src,NULL,st.st_size);
 
-			if(bytes_sent <= 0) {
-				printf("Error, send file failed.\n");
-			}
-			else if (bytes_sent < st.st_size) {
-				printf("Warning: Did not PUT all bytes of the file.\n");
-			}
+		if(bytes_sent <= 0) {
+			printf("Error, send file failed.\n");
+		}
+		else if (bytes_sent < st.st_size) {
+			printf("Warning: Did not PUT all bytes of the file.\n");
+		}
 
 		close(new_connection);
 		close(src);
-		}
+
 	}
 	printf("returned to while loop\n");
 }
