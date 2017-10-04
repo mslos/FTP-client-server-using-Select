@@ -47,9 +47,5 @@ Authenticated users can GET files from the server. Unlike PUT, the implementatio
 ## NOTE on PUT/GET: 
 Correctness of connection and security currently relies on temporal exlusion of multiple clients. Because of the two-phase handshake, no two clients can enter the authentication loop at the same time. Therefore, we can tell with reasonable certainty who a user is. We understand that a *security* problem may arise if a malicious client tries to constantly poll the port for an opening. Hashing the control fd, and saving it as cookies would address this edge case.
 
-## Enclosed are two testing files that we run simultaneously by piping them into stin. There are some irrgularities with GET that we experienced in a few cases, most likely due to file descriptor clashes.
+Enclosed are two testing files that we run simultaneously by piping them into stin. There are some irrgularities with GET that we experienced in a few cases, most likely due to file descriptor clashes.
 We fixed the issue with gets from checkpoint 1.
-
-
-# To view review comments use google spreadsheet.
-https://docs.google.com/a/nyu.edu/spreadsheets/d/1XWKVsJG6vzBNho40SKo-Yv-IgkmJgz-yizVfna04Wco/edit?usp=sharing
